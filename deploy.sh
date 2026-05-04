@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
-# deploy.sh — Claude config 배포 스크립트
+# deploy.sh — Claude Kit 배포 스크립트
 #
 # 사용법:
-#   ./deploy.sh global                     # ~/.claude/ 에 배포 (전역)
-#   ./deploy.sh project /path/to/project   # <project>/.claude/ 에 배포
-#   ./deploy.sh remove global              # 전역 배포 제거
-#   ./deploy.sh remove project /path/to/project
+#   ./deploy.sh <kit-name> global                     # ~/.claude/ 에 배포
+#   ./deploy.sh <kit-name> project /path/to/project   # <project>/.claude/ 에 배포
+#   ./deploy.sh <kit-name> remove global              # 전역 배포 제거
+#   ./deploy.sh <kit-name> remove project /path/to/project
 #
-# 동작 방식:
-#   1. commands/*.md.template → <target>/commands/*.md (경로 치환 후 심링크 or 복사)
-#   2. settings.json → <target>/settings.json 심링크
-#   3. agents/ → <target>/agents/ 심링크
+# 예시:
+#   ./deploy.sh ppt-generator global
+#   ./deploy.sh ppt-generator project ~/work/my-project
 #
-# 심링크를 사용하므로 git pull 후 재배포 없이 즉시 반영됩니다.
+# 배포 내용 (모두 심링크):
+#   skills/<name>/   → <target>/skills/<kit-name>-<name>/
+#   agents/<name>.md → <target>/agents/<kit-name>-<name>.md
+#   rules/<name>.md  → <target>/rules/<kit-name>-<name>.md
+#
+# kit명을 prefix로 붙이므로 여러 kit를 같은 대상에 배포해도 충돌하지 않습니다.
 
 set -euo pipefail
 
@@ -20,10 +24,17 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
   echo "사용법:"
-  echo "  $0 global"
-  echo "  $0 project /path/to/project"
-  echo "  $0 remove global"
-  echo "  $0 remove project /path/to/project"
+  echo "  $0 <kit-name> global"
+  echo "  $0 <kit-name> project /path/to/project"
+  echo "  $0 <kit-name> remove global"
+  echo "  $0 <kit-name> remove project /path/to/project"
+  echo ""
+  echo "사용 가능한 kit:"
+  for d in "$REPO_ROOT"/*/; do
+    name="$(basename "$d")"
+    [[ "$name" == .* ]] && continue
+    [[ -d "$d/skills" || -d "$d/agents" || -d "$d/rules" ]] && echo "  $name"
+  done
   exit 1
 }
 
@@ -41,60 +52,107 @@ resolve_target() {
 }
 
 deploy() {
-  local target="$1"
-  mkdir -p "$target/commands"
+  local kit_name="$1"
+  local target="$2"
+  local kit_dir="$REPO_ROOT/$kit_name"
 
-  # settings.json — 심링크
-  ln -sf "$REPO_ROOT/settings.json" "$target/settings.json"
-  echo "  ✓ settings.json → $target/settings.json"
+  [[ -d "$kit_dir" ]] || { echo "오류: kit '$kit_name' 을 찾을 수 없습니다."; usage; }
+
+  # skills/ — 심링크
+  if [[ -d "$kit_dir/skills" ]]; then
+    mkdir -p "$target/skills"
+    for skill_dir in "$kit_dir/skills"/*/; do
+      [[ -d "$skill_dir" ]] || continue
+      skill_name="$(basename "$skill_dir")"
+      dest="$target/skills/${kit_name}-${skill_name}"
+      ln -sfn "$skill_dir" "$dest"
+      echo "  ✓ skills/${kit_name}-${skill_name}"
+    done
+  fi
 
   # agents/ — 심링크
-  ln -sf "$REPO_ROOT/agents" "$target/agents"
-  echo "  ✓ agents/ → $target/agents"
+  if [[ -d "$kit_dir/agents" ]]; then
+    mkdir -p "$target/agents"
+    for agent_file in "$kit_dir/agents"/*.md; do
+      [[ -f "$agent_file" ]] || continue
+      agent_name="$(basename "$agent_file" .md)"
+      dest="$target/agents/${kit_name}-${agent_name}.md"
+      ln -sf "$agent_file" "$dest"
+      echo "  ✓ agents/${kit_name}-${agent_name}.md"
+    done
+  fi
 
-  # commands/*.md.template → commands/*.md (경로 치환)
-  for tmpl in "$REPO_ROOT/commands"/*.md.template; do
-    [[ -f "$tmpl" ]] || continue
-    filename="$(basename "${tmpl%.template}")"
-    dest="$target/commands/$filename"
-    sed "s|__SKILL_ROOT__|$REPO_ROOT|g" "$tmpl" > "$dest"
-    echo "  ✓ commands/$filename → $dest"
-  done
+  # rules/ — 심링크
+  if [[ -d "$kit_dir/rules" ]]; then
+    mkdir -p "$target/rules"
+    for rule_file in "$kit_dir/rules"/*.md; do
+      [[ -f "$rule_file" ]] || continue
+      rule_name="$(basename "$rule_file" .md)"
+      dest="$target/rules/${kit_name}-${rule_name}.md"
+      ln -sf "$rule_file" "$dest"
+      echo "  ✓ rules/${kit_name}-${rule_name}.md"
+    done
+  fi
 
   echo ""
-  echo "배포 완료: $target"
-  echo "Claude Code를 재시작하면 slash command가 활성화됩니다."
+  echo "배포 완료 [$kit_name]: $target"
+  echo "Claude Code를 재시작하면 활성화됩니다."
 }
 
 remove_deploy() {
-  local target="$1"
+  local kit_name="$1"
+  local target="$2"
+  local kit_dir="$REPO_ROOT/$kit_name"
 
-  [[ -L "$target/settings.json" ]] && rm "$target/settings.json" && echo "  ✓ 제거: settings.json"
-  [[ -L "$target/agents" ]] && rm "$target/agents" && echo "  ✓ 제거: agents/"
+  # skills
+  if [[ -d "$kit_dir/skills" ]]; then
+    for skill_dir in "$kit_dir/skills"/*/; do
+      [[ -d "$skill_dir" ]] || continue
+      skill_name="$(basename "$skill_dir")"
+      dest="$target/skills/${kit_name}-${skill_name}"
+      [[ -L "$dest" ]] && rm "$dest" && echo "  ✓ 제거: skills/${kit_name}-${skill_name}"
+    done
+  fi
 
-  for tmpl in "$REPO_ROOT/commands"/*.md.template; do
-    [[ -f "$tmpl" ]] || continue
-    filename="$(basename "${tmpl%.template}")"
-    dest="$target/commands/$filename"
-    [[ -f "$dest" ]] && rm "$dest" && echo "  ✓ 제거: commands/$filename"
-  done
+  # agents
+  if [[ -d "$kit_dir/agents" ]]; then
+    for agent_file in "$kit_dir/agents"/*.md; do
+      [[ -f "$agent_file" ]] || continue
+      agent_name="$(basename "$agent_file" .md)"
+      dest="$target/agents/${kit_name}-${agent_name}.md"
+      [[ -L "$dest" ]] && rm "$dest" && echo "  ✓ 제거: agents/${kit_name}-${agent_name}.md"
+    done
+  fi
 
-  echo "제거 완료: $target"
+  # rules
+  if [[ -d "$kit_dir/rules" ]]; then
+    for rule_file in "$kit_dir/rules"/*.md; do
+      [[ -f "$rule_file" ]] || continue
+      rule_name="$(basename "$rule_file" .md)"
+      dest="$target/rules/${kit_name}-${rule_name}.md"
+      [[ -L "$dest" ]] && rm "$dest" && echo "  ✓ 제거: rules/${kit_name}-${rule_name}.md"
+    done
+  fi
+
+  echo "제거 완료 [$kit_name]: $target"
 }
 
 # ── 진입점 ──────────────────────────────────────────────────────────────
 
-ACTION="${1:-}"
-[[ -z "$ACTION" ]] && usage
+[[ $# -lt 2 ]] && usage
+
+KIT_NAME="$1"
+ACTION="$2"
+shift 2
 
 if [[ "$ACTION" == "remove" ]]; then
-  MODE="${2:-}"
-  PROJECT_PATH="${3:-}"
-  TARGET="$(resolve_target "$MODE" "$PROJECT_PATH")"
-  remove_deploy "$TARGET"
-else
-  MODE="$ACTION"
+  MODE="${1:-}"
   PROJECT_PATH="${2:-}"
   TARGET="$(resolve_target "$MODE" "$PROJECT_PATH")"
-  deploy "$TARGET"
+  remove_deploy "$KIT_NAME" "$TARGET"
+else
+  MODE="$ACTION"
+  PROJECT_PATH="${1:-}"
+  TARGET="$(resolve_target "$MODE" "$PROJECT_PATH")"
+  deploy "$KIT_NAME" "$TARGET"
 fi
