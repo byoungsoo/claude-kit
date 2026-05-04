@@ -1,0 +1,20 @@
+# PPT 생성 스킬
+
+스킬 정의: `__SKILL_ROOT__/skills/ppt/SKILL.md`
+
+## 실행
+
+$ARGUMENTS를 파싱하여 아래 명령을 Bash로 실행하세요.
+
+```bash
+cd __SKILL_ROOT__/skills/ppt && \
+python3 -m src.ppt_generator.cli.main generate $ARGUMENTS
+```
+
+옵션이 명시되지 않은 경우 기본값 사용:
+- `--slides 12`
+- `--theme corporate_navy`
+- `--audience "일반 전문가"`
+- `--output ./output.pptx`
+
+상세 옵션 및 편집 모드는 SKILL.md를 참고하세요.

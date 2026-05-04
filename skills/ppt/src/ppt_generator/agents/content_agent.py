@@ -42,6 +42,7 @@ class ContentAgent(BaseAgent):
         research: ResearchBundle,
         outline: DeckOutline,
         adjacent_slides: list[SlideStub] | None = None,
+        revision_context: str = "",
     ) -> SlideContent:
         context = f"""덱 제목: {outline.title}
 내러티브 흐름: {outline.narrative_arc.opening_hook} → ... → {outline.narrative_arc.closing_impact}
@@ -62,7 +63,9 @@ class ContentAgent(BaseAgent):
 활용 가능한 리서치 주장:
 {chr(10).join(f'• {c.claim}' for c in research.key_claims[:6])}"""
 
-        prompt = f"""{context}
+        revision_section = f"\n\n⚠️ 수정 지침 (이전 버전의 문제점){revision_context}" if revision_context else ""
+
+        prompt = f"""{context}{revision_section}
 
 이 슬라이드의 전체 SlideContent를 작성하세요. 요구사항:
 - heading: 임팩트 있게, 최대 15자, 핵심 메시지를 담을 것

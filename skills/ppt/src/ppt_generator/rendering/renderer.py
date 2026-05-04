@@ -129,7 +129,6 @@ class SlideRenderer:
                 1,  # MSO_SHAPE_TYPE.RECTANGLE
                 EmuU(0), EmuU(0), EmuU(SLIDE_W), EmuU(SLIDE_H)
             )
-            bg_shape.line.fill.background()
             solid_fill_shape(bg_shape, tokens.colors.background)
             bg_shape.line.width = 0
 

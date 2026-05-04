@@ -139,6 +139,7 @@ def revision_node(state: PipelineState) -> PipelineState:
             stub=stub,
             research=research,
             outline=outline,
+            revision_context=revision_context,
         )
         slides[stub.index] = content
         console.print(f"  [dim]  Revised slide {stub.index + 1}[/]")

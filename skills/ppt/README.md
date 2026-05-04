@@ -4,6 +4,9 @@ Claude Code에서 `/ppt` 명령으로 호출하는 한국어 고품질 PPTX 자�
 
 단순한 슬라이드 변환이 아닌 **멀티 에이전트 파이프라인**으로 리서치 → 내러티브 설계 → 슬라이드 작성 → 디자인 → QA까지 전 과정을 자동화합니다.
 
+> 이 README는 `skills/ppt/` 디렉토리 단독 설명입니다.
+> 리포지토리 전체 구조·설치·배포는 **루트 README.md** 를 참고하세요.
+
 ---
 
 ## 빠른 시작
@@ -11,8 +14,8 @@ Claude Code에서 `/ppt` 명령으로 호출하는 한국어 고품질 PPTX 자�
 ### 1. 의존성 설치
 
 ```bash
-cd /Users/bys/workspace/code_repo/gitlab/claude-skills/ppt
-python3 -m pip install -r requirements.txt --break-system-packages
+# skills/ppt/ 디렉토리에서 실행
+pip3 install -r requirements.txt --break-system-packages
 ```
 
 ### 2. API 키 설정
@@ -21,12 +24,10 @@ python3 -m pip install -r requirements.txt --break-system-packages
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
-### 3. Claude Code에서 사용
+### 3. 실행
 
-```
-/ppt "생성형 AI가 금융 산업에 미치는 영향"
-/ppt "쿠버네티스 보안 모범 사례" --slides 15 --theme dark_tech
-/ppt "스타트업 투자 유치 전략" --theme startup_bold --audience "초기 창업자"
+```bash
+python3 -m src.ppt_generator.cli.main generate "<주제>" [옵션]
 ```
 
 ---
@@ -34,7 +35,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 ## 디렉토리 구조
 
 ```
-ppt/
+skills/ppt/
 ├── README.md                   ← 이 파일
 ├── SKILL.md                    ← Claude에게 전달하는 실행 지침 (생성 + 편집 모드)
 ├── pyproject.toml
@@ -59,7 +60,7 @@ ppt/
 │   │   ├── oxml_effects.py     ← 그라디언트·그림자·글로우 OXML 직접 제어
 │   │   ├── text_render.py      ← 줄간격·자간 OXML 제어
 │   │   ├── chart_render.py     ← plotly / matplotlib → PNG
-│   │   ├── diagram_render.py   ← Mermaid → PNG (mmdc CLI)
+│   │   ├── diagram_render.py   ← Mermaid → PNG (mmdc CLI 또는 matplotlib fallback)
 │   │   └── renderer.py         ← SlideRenderer, LayoutGrid (% → EMU)
 │   │
 │   ├── schema/                 ← Pydantic 데이터 계약
@@ -106,7 +107,7 @@ ppt/
         │
         ▼
   ResearchAgent ──── 주제 관련 사실, 통계, 시각화 제안 수집
-        │             URL 제공 시 해당 자료도 파싱
+        │
         ▼
   OutlineAgent ───── 확장 사고(extended thinking)로 내러티브 호 설계
         │             슬라이드 목적·핵심 메시지·유형 결정
@@ -177,53 +178,6 @@ python3 -m src.ppt_generator.cli.main themes
 
 ---
 
-## PPTX 편집 모드
-
-기존 PPTX를 수정할 때는 XML 직접 편집 방식을 사용합니다.
-
-```bash
-cd scripts/
-
-# 1. 현황 파악 (썸네일 그리드)
-python3 thumbnail.py input.pptx thumbnails --cols 4
-
-# 2. 언팩
-python3 office/unpack.py input.pptx unpacked/
-
-# 3. 슬라이드 추가
-python3 add_slide.py unpacked/ slide2.xml          # 기존 슬라이드 복제
-python3 add_slide.py unpacked/ slideLayout3.xml    # 레이아웃으로 신규 생성
-# → 출력된 <p:sldId> 를 unpacked/ppt/presentation.xml 의 <p:sldIdLst> 에 추가
-
-# 4. XML 직접 편집 (Edit 도구 사용)
-# unpacked/ppt/slides/slide1.xml 등 수정
-
-# 5. 정리
-python3 clean.py unpacked/
-
-# 6. 리팩
-python3 office/pack.py unpacked/ output.pptx
-
-# 7. QA 확인
-python3 thumbnail.py output.pptx qa_result --cols 4
-```
-
----
-
-## Claude Code 연동
-
-이 스킬은 `~/.claude/commands/ppt.md` 또는 프로젝트 `.claude/commands/ppt.md`에 등록하여 사용합니다.
-
-```markdown
-# .claude/commands/ppt.md 예시
-cd /Users/bys/workspace/code_repo/gitlab/claude-skills/ppt && \
-python3 -m src.ppt_generator.cli.main generate $ARGUMENTS
-```
-
-등록 후 Claude Code에서 `/ppt` 명령으로 즉시 호출 가능합니다.
-
----
-
 ## 의존성
 
 | 패키지 | 용도 |
@@ -234,7 +188,11 @@ python3 -m src.ppt_generator.cli.main generate $ARGUMENTS
 | `python-pptx` | PPTX 생성 |
 | `lxml` | OXML 직접 제어 (그라디언트·그림자 등) |
 | `plotly` + `kaleido` | 차트 → PNG 렌더링 |
-| `matplotlib` | 차트 fallback 렌더링 |
+| `matplotlib` | 차트/다이어그램 fallback 렌더링 |
 | `pydantic` | 데이터 스키마 검증 |
 | `httpx` | ResearchAgent URL 패치 |
 | `typer` + `rich` | CLI |
+
+> **다이어그램 렌더링 품질 향상 (선택):**
+> `npm install -g @mermaid-js/mermaid-cli` 설치 시 Mermaid 다이어그램이 고품질 PNG로 렌더링됩니다.
+> 미설치 시 matplotlib 기반 flowchart renderer가 자동으로 사용됩니다.

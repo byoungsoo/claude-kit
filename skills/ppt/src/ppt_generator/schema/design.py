@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import Literal, Optional
 
 
 class ColorPalette(BaseModel):
@@ -68,7 +68,7 @@ class LayoutAssignment(BaseModel):
 
 
 class DesignSpec(BaseModel):
-    tokens: DesignTokens
+    tokens: Optional[DesignTokens] = None  # DesignAgent 호출 후 load_theme()으로 덮어씀
     layout_assignments: list[LayoutAssignment]
     global_accent_color: str  # 전체 덱의 주요 강조색
     use_section_dividers: bool = True

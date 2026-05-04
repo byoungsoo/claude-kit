@@ -15,15 +15,11 @@
 
 ## 생성 모드
 
-### 파이프라인 위치
-
-PPT Generator 앱: `/Users/bys/workspace/temp/ppt-generator-by-claude`
-
 ### 실행 명령
 
 ```bash
-cd /Users/bys/workspace/temp/ppt-generator-by-claude && \
-python3 -m src.ppt_generator.cli.main generate "<주제>" [옵션]
+# <SKILL_ROOT> = 이 파일이 위치한 디렉토리 (skills/ppt/)
+cd <SKILL_ROOT> && python3 -m src.ppt_generator.cli.main generate "<주제>" [옵션]
 ```
 
 ### 옵션
@@ -87,8 +83,7 @@ python3 -m src.ppt_generator.cli.main generate "AWS EKS 운영 전략" \
 #### 1단계: 현황 파악
 
 ```bash
-# 슬라이드 썸네일 그리드 생성 (시각적 검토용)
-cd /Users/bys/workspace/code_repo/gitlab/claude-skills/ppt/scripts
+cd <SKILL_ROOT>/scripts
 python3 thumbnail.py <파일.pptx> thumbnails --cols 4
 ```
 
@@ -130,7 +125,7 @@ python3 add_slide.py unpacked/ slideLayout2.xml    # 레이아웃으로 새 슬�
 #### 4단계: 정리
 
 ```bash
-python3 clean.py unpacked/    # 참조되지 않는 파일 제거
+python3 clean.py unpacked/
 ```
 
 #### 5단계: 리팩

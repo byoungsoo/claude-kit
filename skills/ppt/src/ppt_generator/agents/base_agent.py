@@ -56,24 +56,53 @@ class BaseAgent:
         thinking_budget: int = 4000,
         max_tokens: int = 12000,
     ) -> T:
-        """Call Claude with extended thinking enabled (for OutlineAgent)."""
-        messages = [{"role": "user", "content": user_message}]
+        """Call Claude with extended thinking enabled (for OutlineAgent).
+
+        Bypasses instructor because betas/thinking params aren't forwarded
+        through instructor's create_with_completion. Instead, we append an
+        explicit JSON extraction prompt and parse the output directly.
+        """
+        import json
+
+        schema_str = json.dumps(response_model.model_json_schema(), ensure_ascii=False, indent=2)
+        full_message = (
+            f"{user_message}\n\n"
+            f"다음 JSON 스키마에 맞게 응답하세요. JSON 외에 다른 텍스트는 포함하지 마세요:\n"
+            f"```json\n{schema_str}\n```"
+        )
+        messages = [{"role": "user", "content": full_message}]
 
         for attempt in range(MAX_RETRIES):
             try:
-                response, completion = self._instructor.messages.create_with_completion(
+                completion = self._client.beta.messages.create(
                     model=MODEL,
                     max_tokens=max_tokens,
                     system=self.system_prompt,
                     messages=messages,
-                    response_model=response_model,
                     thinking={"type": "enabled", "budget_tokens": thinking_budget},
-                    temperature=1.0,  # required when thinking is enabled
+                    temperature=1.0,
                     betas=["interleaved-thinking-2025-05-14"],
                 )
                 self.total_input_tokens += completion.usage.input_tokens
                 self.total_output_tokens += completion.usage.output_tokens
-                return response
+
+                # Extract text from content blocks (skip thinking blocks)
+                raw_text = ""
+                for block in completion.content:
+                    if block.type == "text":
+                        raw_text = block.text
+                        break
+
+                # Strip markdown code fences if present
+                raw_text = raw_text.strip()
+                if raw_text.startswith("```"):
+                    raw_text = raw_text.split("```", 2)[1]
+                    if raw_text.startswith("json"):
+                        raw_text = raw_text[4:]
+                    raw_text = raw_text.rsplit("```", 1)[0].strip()
+
+                data = json.loads(raw_text)
+                return response_model.model_validate(data)
             except Exception as e:
                 if attempt == MAX_RETRIES - 1:
                     raise
