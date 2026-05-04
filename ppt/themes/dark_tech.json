@@ -1,0 +1,41 @@
+{
+  "name": "dark_tech",
+  "colors": {
+    "primary": "#60A5FA",
+    "secondary": "#34D399",
+    "accent": "#F59E0B",
+    "background": "#0F172A",
+    "surface": "#1E293B",
+    "text_primary": "#F1F5F9",
+    "text_secondary": "#94A3B8",
+    "success": "#34D399",
+    "warning": "#F59E0B",
+    "danger": "#F87171"
+  },
+  "typography": {
+    "heading_font": "Calibri",
+    "body_font": "Calibri",
+    "heading_size_h1": 42,
+    "heading_size_h2": 28,
+    "heading_size_h3": 20,
+    "body_size": 14,
+    "caption_size": 11,
+    "line_spacing_pct": 145
+  },
+  "spacing": {
+    "margin_top_pct": 0.08,
+    "margin_bottom_pct": 0.06,
+    "margin_left_pct": 0.06,
+    "margin_right_pct": 0.06,
+    "gutter_pct": 0.03
+  },
+  "shadow": {
+    "blur_pt": 10,
+    "dist_pt": 5,
+    "angle_deg": 45,
+    "color_hex": "#00000066"
+  },
+  "border_radius_pt": 8,
+  "use_gradient_background": true,
+  "gradient_angle_deg": 135
+}

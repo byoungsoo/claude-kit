@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "ppt-generator"
+version = "0.1.0"
+description = "AI-powered PPT generator using multi-agent Claude pipeline"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40.0",
+    "instructor>=1.0.0",
+    "langgraph>=0.2.0",
+    "python-pptx>=1.0.0",
+    "lxml>=5.0.0",
+    "plotly>=5.0.0",
+    "kaleido>=0.2.1",
+    "pydantic>=2.0.0",
+    "httpx>=0.27.0",
+    "pandas>=2.0.0",
+    "typer>=0.12.0",
+    "rich>=13.0.0",
+    "matplotlib>=3.8.0",
+    "pillow>=10.0.0",
+]
+
+[project.scripts]
+ppt-generate = "ppt_generator.cli.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

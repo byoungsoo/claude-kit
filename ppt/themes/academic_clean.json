@@ -1,0 +1,41 @@
+{
+  "name": "academic_clean",
+  "colors": {
+    "primary": "#1A365D",
+    "secondary": "#2B6CB0",
+    "accent": "#C53030",
+    "background": "#FFFFFF",
+    "surface": "#F7FAFC",
+    "text_primary": "#1A202C",
+    "text_secondary": "#4A5568",
+    "success": "#276749",
+    "warning": "#C05621",
+    "danger": "#C53030"
+  },
+  "typography": {
+    "heading_font": "Calibri",
+    "body_font": "Calibri",
+    "heading_size_h1": 36,
+    "heading_size_h2": 26,
+    "heading_size_h3": 18,
+    "body_size": 13,
+    "caption_size": 10,
+    "line_spacing_pct": 155
+  },
+  "spacing": {
+    "margin_top_pct": 0.10,
+    "margin_bottom_pct": 0.08,
+    "margin_left_pct": 0.08,
+    "margin_right_pct": 0.08,
+    "gutter_pct": 0.04
+  },
+  "shadow": {
+    "blur_pt": 4,
+    "dist_pt": 2,
+    "angle_deg": 45,
+    "color_hex": "#00000022"
+  },
+  "border_radius_pt": 2,
+  "use_gradient_background": false,
+  "gradient_angle_deg": 135
+}

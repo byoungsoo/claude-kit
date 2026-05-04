@@ -1,0 +1,41 @@
+{
+  "name": "corporate_navy",
+  "colors": {
+    "primary": "#1E3A5F",
+    "secondary": "#2E86AB",
+    "accent": "#F4A261",
+    "background": "#FFFFFF",
+    "surface": "#F0F4F8",
+    "text_primary": "#1A202C",
+    "text_secondary": "#718096",
+    "success": "#22C55E",
+    "warning": "#F59E0B",
+    "danger": "#EF4444"
+  },
+  "typography": {
+    "heading_font": "Calibri",
+    "body_font": "Calibri",
+    "heading_size_h1": 40,
+    "heading_size_h2": 28,
+    "heading_size_h3": 20,
+    "body_size": 14,
+    "caption_size": 11,
+    "line_spacing_pct": 140
+  },
+  "spacing": {
+    "margin_top_pct": 0.08,
+    "margin_bottom_pct": 0.06,
+    "margin_left_pct": 0.06,
+    "margin_right_pct": 0.06,
+    "gutter_pct": 0.03
+  },
+  "shadow": {
+    "blur_pt": 8,
+    "dist_pt": 4,
+    "angle_deg": 45,
+    "color_hex": "#00000033"
+  },
+  "border_radius_pt": 6,
+  "use_gradient_background": false,
+  "gradient_angle_deg": 135
+}

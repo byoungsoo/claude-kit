@@ -1,0 +1,41 @@
+{
+  "name": "startup_bold",
+  "colors": {
+    "primary": "#7C3AED",
+    "secondary": "#EC4899",
+    "accent": "#06B6D4",
+    "background": "#FAFAFA",
+    "surface": "#F3F4F6",
+    "text_primary": "#111827",
+    "text_secondary": "#6B7280",
+    "success": "#10B981",
+    "warning": "#F59E0B",
+    "danger": "#EF4444"
+  },
+  "typography": {
+    "heading_font": "Calibri",
+    "body_font": "Calibri",
+    "heading_size_h1": 44,
+    "heading_size_h2": 30,
+    "heading_size_h3": 22,
+    "body_size": 15,
+    "caption_size": 11,
+    "line_spacing_pct": 150
+  },
+  "spacing": {
+    "margin_top_pct": 0.07,
+    "margin_bottom_pct": 0.06,
+    "margin_left_pct": 0.07,
+    "margin_right_pct": 0.07,
+    "gutter_pct": 0.04
+  },
+  "shadow": {
+    "blur_pt": 12,
+    "dist_pt": 6,
+    "angle_deg": 135,
+    "color_hex": "#7C3AED44"
+  },
+  "border_radius_pt": 10,
+  "use_gradient_background": false,
+  "gradient_angle_deg": 135
+}
