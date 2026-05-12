@@ -1,41 +1,45 @@
 {
   "name": "dark_tech",
   "colors": {
-    "primary": "#60A5FA",
-    "secondary": "#34D399",
-    "accent": "#F59E0B",
-    "background": "#0F172A",
-    "surface": "#1E293B",
+    "primary": "#E2E8F0",
+    "secondary": "#38BDF8",
+    "accent": "#818CF8",
+    "accent2": "#34D399",
+    "background": "#0A0F1E",
+    "surface": "#111827",
+    "surface2": "#1E293B",
     "text_primary": "#F1F5F9",
     "text_secondary": "#94A3B8",
+    "text_muted": "#64748B",
     "success": "#34D399",
-    "warning": "#F59E0B",
-    "danger": "#F87171"
+    "warning": "#FBBF24",
+    "danger": "#F87171",
+    "border": "#1E293B"
   },
   "typography": {
-    "heading_font": "Calibri",
-    "body_font": "Calibri",
-    "heading_size_h1": 42,
-    "heading_size_h2": 28,
-    "heading_size_h3": 20,
+    "heading_font": "Malgun Gothic",
+    "body_font": "Malgun Gothic",
+    "heading_size_h1": 34,
+    "heading_size_h2": 24,
+    "heading_size_h3": 16,
     "body_size": 14,
-    "caption_size": 11,
+    "caption_size": 10,
     "line_spacing_pct": 145
   },
   "spacing": {
     "margin_top_pct": 0.08,
     "margin_bottom_pct": 0.06,
-    "margin_left_pct": 0.06,
+    "margin_left_pct": 0.07,
     "margin_right_pct": 0.06,
     "gutter_pct": 0.03
   },
   "shadow": {
-    "blur_pt": 10,
-    "dist_pt": 5,
-    "angle_deg": 45,
-    "color_hex": "#00000066"
+    "blur_pt": 16,
+    "dist_pt": 4,
+    "angle_deg": 90,
+    "color_hex": "#000000"
   },
   "border_radius_pt": 8,
-  "use_gradient_background": true,
+  "use_gradient_background": false,
   "gradient_angle_deg": 135
 }

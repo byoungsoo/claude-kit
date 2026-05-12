@@ -77,6 +77,7 @@ def _apply_run_format(run, spec: TextRun, tokens: DesignTokens,
     run.text = override_text if override_text is not None else spec.text
     run.font.bold = spec.bold
     run.font.italic = spec.italic
+    run.font.name = tokens.typography.body_font
 
     size = spec.size_pt or tokens.typography.body_size
     run.font.size = Pt(size)

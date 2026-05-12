@@ -1,5 +1,6 @@
 """Main SlideRenderer: orchestrates all rendering modules to produce PPTX."""
 import io
+import re
 from pathlib import Path
 
 from pptx import Presentation
@@ -15,7 +16,8 @@ from .oxml_effects import (
 )
 from .text_render import apply_text_block
 from .chart_render import render_chart
-from .diagram_render import render_diagram_sync
+from .diagram_render import render_svg, render_aws_diagram
+from .layout_templates import get_template, SLIDE_W as _LT_W, SLIDE_H as _LT_H
 
 
 # Slide dimensions: 16:9 widescreen (EMU)
@@ -48,7 +50,8 @@ class LayoutGrid:
 
     @property
     def content_y(self) -> int:
-        return self.y(0.15)  # below header band
+        # heading(0.08~0.20) + subheading(~0.29) 아래부터 시작
+        return self.y(0.31)
 
     @property
     def content_w(self) -> int:
@@ -56,7 +59,7 @@ class LayoutGrid:
 
     @property
     def content_h(self) -> int:
-        return self.h(1.0 - 0.15 - self.m.margin_bottom_pct - 0.06)
+        return self.h(1.0 - 0.27 - self.m.margin_bottom_pct - 0.06)
 
 
 class SlideRenderer:
@@ -70,6 +73,20 @@ class SlideRenderer:
         self.prs.slide_width = Emu(SLIDE_W)
         self.prs.slide_height = Emu(SLIDE_H)
         self._blank_layout = self.prs.slide_layouts[6]  # Blank layout
+        self._clear_master_background()
+
+    def _clear_master_background(self) -> None:
+        """Remove gradient/theme background from slide master so slides start truly blank."""
+        from pptx.oxml.ns import qn
+        from lxml import etree
+        for master in self.prs.slide_masters:
+            bg = master._element.find(qn("p:bg"))
+            if bg is not None:
+                master._element.remove(bg)
+            for layout in master.slide_layouts:
+                bg = layout._element.find(qn("p:bg"))
+                if bg is not None:
+                    layout._element.remove(bg)
 
     def render_deck(self, slides: list[SlideContent]) -> Presentation:
         for content in slides:
@@ -113,34 +130,36 @@ class SlideRenderer:
 
     def _apply_background(self, slide, content: SlideContent,
                            layout: LayoutAssignment | None) -> None:
+        """Set slide background color via the slide's <p:bg> XML element."""
+        from pptx.oxml.ns import qn as _qn
+        from lxml import etree
         tokens = self.tokens
-        variant = content.background_variant
+        color_hex = tokens.colors.background.lstrip("#")
 
-        if variant == "dark" or tokens.use_gradient_background:
-            if variant == "dark":
-                stops = [(0, tokens.colors.primary), (100, "#0A0F1E")]
-            else:
-                stops = [(0, tokens.colors.background), (100, tokens.colors.surface)]
-            slide_gradient_background(slide, stops, tokens.gradient_angle_deg)
-        else:
-            # Solid white/surface background via a full-slide rectangle
-            from pptx.util import Emu as EmuU
-            bg_shape = slide.shapes.add_shape(
-                1,  # MSO_SHAPE_TYPE.RECTANGLE
-                EmuU(0), EmuU(0), EmuU(SLIDE_W), EmuU(SLIDE_H)
-            )
-            solid_fill_shape(bg_shape, tokens.colors.background)
-            bg_shape.line.width = 0
+        # Build <p:bg><p:bgPr><a:solidFill>...
+        spTree = slide.shapes._spTree
+        sp_parent = spTree.getparent()  # <p:cSld>
+        cSld = slide._element.find(_qn("p:cSld"))
+
+        # Remove existing bg if any
+        existing = cSld.find(_qn("p:bg"))
+        if existing is not None:
+            cSld.remove(existing)
+
+        NS_P = "http://schemas.openxmlformats.org/presentationml/2006/main"
+        NS_A = "http://schemas.openxmlformats.org/drawingml/2006/main"
+        bg_el = etree.SubElement(cSld, f"{{{NS_P}}}bg")
+        bgPr = etree.SubElement(bg_el, f"{{{NS_P}}}bgPr")
+        solidFill = etree.SubElement(bgPr, f"{{{NS_A}}}solidFill")
+        etree.SubElement(solidFill, f"{{{NS_A}}}srgbClr", val=color_hex)
+        etree.SubElement(bgPr, f"{{{NS_A}}}effectLst")
+
+        # Move bg to be the first child of cSld
+        cSld.remove(bg_el)
+        cSld.insert(0, bg_el)
 
     def _add_header_stripe(self, slide) -> None:
-        """Thin accent stripe at top of slide."""
-        from pptx.util import Emu as EmuU
-        stripe = slide.shapes.add_shape(
-            1, EmuU(0), EmuU(0),
-            EmuU(SLIDE_W), EmuU(self.grid.h(0.008))
-        )
-        solid_fill_shape(stripe, self.tokens.colors.accent)
-        stripe.line.width = 0
+        pass
 
     def _add_footer(self, slide, slide_index: int) -> None:
         from pptx.util import Emu as EmuU
@@ -157,6 +176,7 @@ class SlideRenderer:
             tf.text = self.spec.footer_text
             p = tf.paragraphs[0]
             run = p.runs[0]
+            run.font.name = self.tokens.typography.body_font
             run.font.size = Pt(self.tokens.typography.caption_size)
             r, g, b = bytes.fromhex(self.tokens.colors.text_secondary.lstrip("#"))
             run.font.color.rgb = RGBColor(r, g, b)
@@ -171,6 +191,7 @@ class SlideRenderer:
         p = tf.paragraphs[0]
         p.alignment = PP_ALIGN.RIGHT
         run = p.runs[0]
+        run.font.name = self.tokens.typography.body_font
         run.font.size = Pt(self.tokens.typography.caption_size)
         r, g, b = bytes.fromhex(self.tokens.colors.text_secondary.lstrip("#"))
         run.font.color.rgb = RGBColor(r, g, b)
@@ -184,16 +205,34 @@ class SlideRenderer:
 
         txBox = slide.shapes.add_textbox(
             EmuU(self.grid.content_x), EmuU(self.grid.y(y_pct)),
-            EmuU(self.grid.content_w), EmuU(self.grid.h(0.10))
+            EmuU(self.grid.content_w), EmuU(self.grid.h(0.14))
         )
         tf = txBox.text_frame
         tf.word_wrap = True
         tf.text = text
         p = tf.paragraphs[0]
         run = p.runs[0]
+        run.font.name = self.tokens.typography.heading_font
         run.font.bold = True
         run.font.size = Pt(size)
         r, g, b = bytes.fromhex(color.lstrip("#"))
+        run.font.color.rgb = RGBColor(r, g, b)
+
+    def _add_subheading(self, slide, text: str) -> None:
+        from pptx.util import Emu as EmuU
+        tokens = self.tokens
+        txBox = slide.shapes.add_textbox(
+            EmuU(self.grid.content_x), EmuU(self.grid.y(0.20)),
+            EmuU(self.grid.content_w), EmuU(self.grid.h(0.09))
+        )
+        tf = txBox.text_frame
+        tf.word_wrap = True
+        tf.text = text
+        p = tf.paragraphs[0]
+        run = p.runs[0]
+        run.font.name = tokens.typography.body_font
+        run.font.size = Pt(tokens.typography.heading_size_h3)
+        r, g, b = bytes.fromhex(tokens.colors.text_secondary.lstrip("#"))
         run.font.color.rgb = RGBColor(r, g, b)
 
     def _render_title_slide(self, slide, content: SlideContent,
@@ -201,84 +240,73 @@ class SlideRenderer:
         from pptx.util import Emu as EmuU
         tokens = self.tokens
 
-        # Large title
+        # Title — 세로 중앙 정렬
         title_box = slide.shapes.add_textbox(
-            EmuU(self.grid.x(0.08)), EmuU(self.grid.y(0.25)),
-            EmuU(self.grid.w(0.84)), EmuU(self.grid.h(0.30))
+            EmuU(self.grid.content_x), EmuU(self.grid.y(0.30)),
+            EmuU(self.grid.content_w), EmuU(self.grid.h(0.35))
         )
         tf = title_box.text_frame
         tf.word_wrap = True
         tf.text = content.heading
         p = tf.paragraphs[0]
-        p.alignment = PP_ALIGN.CENTER
+        p.alignment = PP_ALIGN.LEFT
         run = p.runs[0]
+        run.font.name = tokens.typography.heading_font
         run.font.bold = True
-        run.font.size = Pt(tokens.typography.heading_size_h1)
+        run.font.size = Pt(tokens.typography.heading_size_h1 + 4)
         r, g, b = bytes.fromhex(tokens.colors.primary.lstrip("#"))
         run.font.color.rgb = RGBColor(r, g, b)
 
         # Subtitle
         if content.subheading:
             sub_box = slide.shapes.add_textbox(
-                EmuU(self.grid.x(0.10)), EmuU(self.grid.y(0.58)),
-                EmuU(self.grid.w(0.80)), EmuU(self.grid.h(0.12))
+                EmuU(self.grid.content_x), EmuU(self.grid.y(0.66)),
+                EmuU(self.grid.content_w), EmuU(self.grid.h(0.12))
             )
             tf = sub_box.text_frame
             tf.text = content.subheading
             p = tf.paragraphs[0]
-            p.alignment = PP_ALIGN.CENTER
+            p.alignment = PP_ALIGN.LEFT
             run = p.runs[0]
-            run.font.size = Pt(tokens.typography.heading_size_h3)
+            run.font.name = tokens.typography.body_font
+            run.font.size = Pt(tokens.typography.heading_size_h3 + 2)
             r, g, b = bytes.fromhex(tokens.colors.text_secondary.lstrip("#"))
             run.font.color.rgb = RGBColor(r, g, b)
-
-        # Decorative divider line
-        divider = slide.shapes.add_shape(
-            1,
-            EmuU(self.grid.x(0.30)), EmuU(self.grid.y(0.55)),
-            EmuU(self.grid.w(0.40)), EmuU(self.grid.h(0.004))
-        )
-        solid_fill_shape(divider, tokens.colors.accent)
-        divider.line.width = 0
 
     def _render_section_slide(self, slide, content: SlideContent,
                                layout: LayoutAssignment | None) -> None:
         from pptx.util import Emu as EmuU
         tokens = self.tokens
 
-        # Section number badge
-        badge = slide.shapes.add_shape(
-            1,
-            EmuU(self.grid.x(0.06)), EmuU(self.grid.y(0.30)),
-            EmuU(self.grid.w(0.08)), EmuU(self.grid.h(0.14))
+        # 섹션 번호
+        num_box = slide.shapes.add_textbox(
+            EmuU(self.grid.content_x), EmuU(self.grid.y(0.25)),
+            EmuU(self.grid.content_w), EmuU(self.grid.h(0.15))
         )
-        solid_fill_shape(badge, tokens.colors.accent)
-        rounded_corners(badge, radius_pt=6)
-        outer_shadow(badge, blur_pt=8, dist_pt=3, color_hex="#000000", alpha_pct=20)
-
-        tf = badge.text_frame
-        tf.text = str(content.index + 1)
+        tf = num_box.text_frame
+        tf.text = f"Section {content.index:02d}"
         p = tf.paragraphs[0]
-        p.alignment = PP_ALIGN.CENTER
         run = p.runs[0]
-        run.font.bold = True
-        run.font.size = Pt(28)
-        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.name = tokens.typography.body_font
+        run.font.size = Pt(tokens.typography.body_size)
+        r, g, b = bytes.fromhex(tokens.colors.text_secondary.lstrip("#"))
+        run.font.color.rgb = RGBColor(r, g, b)
 
-        # Section title
-        self._add_heading(slide, content.heading, y_pct=0.28,
-                          size_pt=tokens.typography.heading_size_h1,
+        # 섹션 제목
+        self._add_heading(slide, content.heading, y_pct=0.38,
+                          size_pt=tokens.typography.heading_size_h1 + 2,
                           color_hex=tokens.colors.primary)
 
         if content.subheading:
             sub_box = slide.shapes.add_textbox(
-                EmuU(self.grid.content_x), EmuU(self.grid.y(0.52)),
+                EmuU(self.grid.content_x), EmuU(self.grid.y(0.60)),
                 EmuU(self.grid.content_w), EmuU(self.grid.h(0.15))
             )
             tf = sub_box.text_frame
             tf.text = content.subheading
             p = tf.paragraphs[0]
             run = p.runs[0]
+            run.font.name = tokens.typography.body_font
             run.font.size = Pt(tokens.typography.heading_size_h3)
             r, g, b = bytes.fromhex(tokens.colors.text_secondary.lstrip("#"))
             run.font.color.rgb = RGBColor(r, g, b)
@@ -287,189 +315,232 @@ class SlideRenderer:
                                layout: LayoutAssignment | None) -> None:
         self._render_title_slide(slide, content, layout)
 
+    # ------------------------------------------------------------------ #
+    #  Helpers: aspect-ratio-safe picture placement
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _svg_aspect(svg_str: str) -> float | None:
+        """Return width/height from SVG viewBox or width/height attrs, or None."""
+        m = re.search(r'viewBox=["\'][\d.]+\s+[\d.]+\s+([\d.]+)\s+([\d.]+)["\']', svg_str)
+        if m:
+            w, h = float(m.group(1)), float(m.group(2))
+            return w / h if h else None
+        mw = re.search(r'\bwidth=["\'](\d+\.?\d*)', svg_str)
+        mh = re.search(r'\bheight=["\'](\d+\.?\d*)', svg_str)
+        if mw and mh:
+            w, h = float(mw.group(1)), float(mh.group(1))
+            return w / h if h else None
+        return None
+
+    def _place_picture(self, slide, png_buf: io.BytesIO,
+                       zone: tuple[int, int, int, int],
+                       aspect: float | None = None) -> None:
+        """Place a picture inside a zone while preserving aspect ratio (letterbox)."""
+        from pptx.util import Emu as EmuU
+        zx, zy, zw, zh = zone
+        if aspect is not None and aspect > 0:
+            zone_aspect = zw / zh
+            if aspect > zone_aspect:
+                # wider than zone → fit width, letterbox top/bottom
+                pw = zw
+                ph = int(zw / aspect)
+                px = zx
+                py = zy + (zh - ph) // 2
+            else:
+                # taller than zone → fit height, letterbox left/right
+                ph = zh
+                pw = int(zh * aspect)
+                py = zy
+                px = zx + (zw - pw) // 2
+        else:
+            px, py, pw, ph = zx, zy, zw, zh
+        slide.shapes.add_picture(png_buf, EmuU(px), EmuU(py), EmuU(pw), EmuU(ph))
+
+    # ------------------------------------------------------------------ #
+    #  Template-based content rendering
+    # ------------------------------------------------------------------ #
+
     def _render_content_slide(self, slide, content: SlideContent,
                                layout: LayoutAssignment | None) -> None:
         from pptx.util import Emu as EmuU
 
-        # Heading
         self._add_heading(slide, content.heading)
+        if content.subheading:
+            self._add_subheading(slide, content.subheading)
 
-        slide_type = content.slide_type
-        la = layout
+        # Determine template: prefer layout_template, fall back to legacy logic
+        tpl_name = content.layout_template or self._infer_template(content, layout)
+        tpl = get_template(tpl_name)
 
-        if slide_type == "two_column" and la:
-            self._render_two_column(slide, content, la)
-        elif content.chart is not None:
-            self._render_with_chart(slide, content)
-        elif content.diagram is not None:
-            self._render_with_diagram(slide, content)
-        elif content.table is not None:
-            self._render_with_table(slide, content)
-        else:
+        if tpl_name == "two_column_text":
+            self._render_two_column_text(slide, content, tpl)
+        elif tpl_name == "text_only":
             self._render_text_only(slide, content)
+        else:
+            self._render_by_template(slide, content, tpl, tpl_name)
+
+    def _infer_template(self, content: SlideContent,
+                        layout: LayoutAssignment | None) -> str:
+        """Legacy fallback: infer template from slide_type and content fields."""
+        if content.slide_type == "two_column" and layout:
+            return "two_column_text"
+        if content.chart or content.diagram or content.table:
+            if content.body_blocks:
+                return "text_left_viz_right"
+            return "viz_only"
+        return "text_only"
+
+    def _render_by_template(self, slide, content: SlideContent,
+                             tpl: dict, tpl_name: str) -> None:
+        from pptx.util import Emu as EmuU
+
+        # Render body text if template has a "text" zone
+        if "text" in tpl and content.body_blocks:
+            zx, zy, zw, zh = tpl["text"]
+            txBox = slide.shapes.add_textbox(
+                EmuU(zx), EmuU(zy), EmuU(zw), EmuU(zh)
+            )
+            tf = txBox.text_frame
+            tf.word_wrap = True
+            for block in content.body_blocks:
+                apply_text_block(tf, block, self.tokens)
+
+        # Render visualization if template has a "viz" zone
+        if "viz" not in tpl:
+            return
+
+        viz_zone = tpl["viz"]
+        zx, zy, zw, zh = viz_zone
+
+        if content.chart:
+            self._add_card(slide, zx, zy, zw, zh)
+            chart_png = render_chart(
+                content.chart, self.tokens,
+                width_px=max(100, int(zw / 914400 * 96)),
+                height_px=max(100, int(zh / 914400 * 96)),
+            )
+            # Charts are rendered to exact pixel size, no aspect correction needed
+            slide.shapes.add_picture(chart_png, EmuU(zx), EmuU(zy), EmuU(zw), EmuU(zh))
+
+        elif content.diagram:
+            if content.diagram.aws_diagram:
+                diag_png = render_aws_diagram(content.diagram.aws_diagram)
+                aspect = None  # unknown aspect for binary PNG
+            else:
+                svg_str = content.diagram.svg or ""
+                aspect = self._svg_aspect(svg_str)
+                diag_png = render_svg(svg_str)
+
+            self._add_card(slide, zx, zy, zw, zh)
+            self._place_picture(slide, diag_png, viz_zone, aspect)
+
+        elif content.table:
+            self._add_card(slide, zx, zy, zw, zh)
+            self._render_table_in_zone(slide, content.table, zx, zy, zw, zh)
 
     def _render_text_only(self, slide, content: SlideContent) -> None:
         from pptx.util import Emu as EmuU
         if not content.body_blocks:
             return
-
-        txBox = slide.shapes.add_textbox(
-            EmuU(self.grid.content_x), EmuU(self.grid.content_y),
-            EmuU(self.grid.content_w), EmuU(self.grid.content_h)
-        )
+        tpl = get_template("text_only")
+        zx, zy, zw, zh = tpl["text"]
+        txBox = slide.shapes.add_textbox(EmuU(zx), EmuU(zy), EmuU(zw), EmuU(zh))
         tf = txBox.text_frame
         tf.word_wrap = True
-
         for block in content.body_blocks:
             apply_text_block(tf, block, self.tokens)
 
-    def _render_with_chart(self, slide, content: SlideContent) -> None:
+    def _add_card(self, slide, x: int, y: int, w: int, h: int) -> None:
+        """Render a subtle card background behind content."""
         from pptx.util import Emu as EmuU
+        pad = self.grid.w(0.008)
+        card = slide.shapes.add_shape(
+            1,
+            EmuU(x - pad), EmuU(y - pad),
+            EmuU(w + pad * 2), EmuU(h + pad * 2)
+        )
+        solid_fill_shape(card, self.tokens.colors.surface)
+        card.line.fill.solid()
+        r, g, b = bytes.fromhex(self.tokens.colors.border.lstrip("#"))
+        card.line.color.rgb = RGBColor(r, g, b)
+        from pptx.util import Pt as PtU
+        card.line.width = PtU(0.5)
 
-        # Text on left (if any), chart on right
-        has_text = bool(content.body_blocks)
-        split = 0.45 if has_text else 0.0
-
-        if has_text:
-            txBox = slide.shapes.add_textbox(
-                EmuU(self.grid.content_x), EmuU(self.grid.content_y),
-                EmuU(self.grid.w(split - 0.03)), EmuU(self.grid.content_h)
-            )
-            tf = txBox.text_frame
-            tf.word_wrap = True
-            for block in content.body_blocks:
-                apply_text_block(tf, block, self.tokens)
-
-        chart_x = self.grid.x(split + self.tokens.spacing.margin_left_pct if has_text else 0.06)
-        chart_w = self.grid.w(1.0 - split - self.tokens.spacing.margin_right_pct - (
-            self.tokens.spacing.margin_left_pct if has_text else 0.06))
-        chart_h = self.grid.content_h
-
-        chart_png = render_chart(content.chart, self.tokens,
-                                  width_px=int(chart_w / 9144 * 96),
-                                  height_px=int(chart_h / 5143500 * 540 * 2))
-        slide.shapes.add_picture(chart_png,
-                                  EmuU(chart_x), EmuU(self.grid.content_y),
-                                  EmuU(chart_w), EmuU(chart_h))
-
-    def _render_with_diagram(self, slide, content: SlideContent) -> None:
+    def _render_table_in_zone(self, slide, spec, zx: int, zy: int, zw: int, zh: int) -> None:
         from pptx.util import Emu as EmuU
-
-        diag_png = render_diagram_sync(content.diagram.mermaid,
-                                        content.diagram.caption or "diagram")
-
-        diag_x = self.grid.content_x
-        diag_y = self.grid.content_y
-        diag_w = self.grid.content_w
-        diag_h = self.grid.content_h
-
-        if content.body_blocks:
-            # Text top, diagram bottom
-            text_h = self.grid.h(0.20)
-            txBox = slide.shapes.add_textbox(
-                EmuU(diag_x), EmuU(diag_y),
-                EmuU(diag_w), EmuU(text_h)
-            )
-            tf = txBox.text_frame
-            tf.word_wrap = True
-            for block in content.body_blocks:
-                apply_text_block(tf, block, self.tokens)
-            diag_y += text_h + self.grid.h(0.02)
-            diag_h -= text_h + self.grid.h(0.02)
-
-        slide.shapes.add_picture(diag_png,
-                                  EmuU(diag_x), EmuU(diag_y),
-                                  EmuU(diag_w), EmuU(diag_h))
-
-    def _render_with_table(self, slide, content: SlideContent) -> None:
-        from pptx.util import Emu as EmuU
-        from pptx.util import Inches
-
-        spec = content.table
-        rows = len(spec.rows) + 1  # +1 for header
-        cols = len(spec.headers)
+        from lxml import etree
+        from pptx.oxml.ns import qn
+        NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
         tokens = self.tokens
+        rows = len(spec.rows) + 1
+        cols = len(spec.headers)
+
+        # 행이 많을수록 폰트 자동 축소 (zone 높이 기준)
+        # 각 행 최소 높이: 914400 EMU = 1인치 ≈ 72pt → 행당 약 20pt 이상 필요
+        row_h_emu = zh / rows
+        base_body = tokens.typography.body_size
+        # row 높이(pt 환산)의 55% 이하로 폰트 제한
+        max_font = max(8, int(row_h_emu / 914400 * 72 * 0.55))
+        body_size = min(base_body - 1, max_font)
+        header_size = min(base_body, max_font + 1)
 
         tbl = slide.shapes.add_table(
-            rows, cols,
-            EmuU(self.grid.content_x), EmuU(self.grid.content_y),
-            EmuU(self.grid.content_w), EmuU(self.grid.content_h)
+            rows, cols, EmuU(zx), EmuU(zy), EmuU(zw), EmuU(zh)
         ).table
-
-        # Header row
         for ci, header in enumerate(spec.headers):
             cell = tbl.cell(0, ci)
             cell.text = header
             para = cell.text_frame.paragraphs[0]
             run = para.runs[0] if para.runs else para.add_run()
+            run.font.name = tokens.typography.heading_font
             run.font.bold = True
-            run.font.size = Pt(tokens.typography.body_size)
+            run.font.size = Pt(header_size)
             r, g, b = bytes.fromhex(tokens.colors.background.lstrip("#"))
             run.font.color.rgb = RGBColor(r, g, b)
-            from pptx.oxml.ns import qn
             tc = cell._tc
             tcPr = tc.get_or_add_tcPr()
-            solidFill = tcPr.find(qn("a:solidFill"))
-            if solidFill is not None:
-                tcPr.remove(solidFill)
-            from lxml import etree
-            sf = etree.SubElement(tcPr, "{http://schemas.openxmlformats.org/drawingml/2006/main}solidFill")
-            etree.SubElement(sf, "{http://schemas.openxmlformats.org/drawingml/2006/main}srgbClr",
-                             val=tokens.colors.primary.lstrip("#"))
-
-        # Data rows
-        for ri, row in enumerate(spec.rows):
-            for ci, cell_text in enumerate(row):
+            sf_existing = tcPr.find(qn("a:solidFill"))
+            if sf_existing is not None:
+                tcPr.remove(sf_existing)
+            sf = etree.SubElement(tcPr, f"{{{NS}}}solidFill")
+            etree.SubElement(sf, f"{{{NS}}}srgbClr", val=tokens.colors.primary.lstrip("#"))
+        for ri, row_data in enumerate(spec.rows):
+            row_color = tokens.colors.surface if ri % 2 == 0 else tokens.colors.background
+            for ci, cell_text in enumerate(row_data):
                 cell = tbl.cell(ri + 1, ci)
                 cell.text = cell_text
                 para = cell.text_frame.paragraphs[0]
                 run = para.runs[0] if para.runs else para.add_run()
-                run.font.size = Pt(tokens.typography.body_size - 1)
+                run.font.name = tokens.typography.body_font
+                run.font.size = Pt(body_size)
                 r, g, b = bytes.fromhex(tokens.colors.text_primary.lstrip("#"))
                 run.font.color.rgb = RGBColor(r, g, b)
                 if spec.highlight_column is not None and ci == spec.highlight_column:
                     run.font.bold = True
+                tc = cell._tc
+                tcPr = tc.get_or_add_tcPr()
+                sf_existing = tcPr.find(qn("a:solidFill"))
+                if sf_existing is not None:
+                    tcPr.remove(sf_existing)
+                sf = etree.SubElement(tcPr, f"{{{NS}}}solidFill")
+                etree.SubElement(sf, f"{{{NS}}}srgbClr", val=row_color.lstrip("#"))
 
-    def _render_two_column(self, slide, content: SlideContent,
-                            layout: LayoutAssignment) -> None:
+    def _render_two_column_text(self, slide, content: SlideContent,
+                                 tpl: dict) -> None:
+        """Render body_blocks split across two text zones."""
         from pptx.util import Emu as EmuU
+        blocks = content.body_blocks
+        mid = (len(blocks) + 1) // 2
+        left_blocks = blocks[:mid]
+        right_blocks = blocks[mid:]
 
-        split = layout.split_ratio
-        gutter = self.tokens.spacing.gutter_pct
-        left_w = self.grid.w(split - gutter / 2)
-        right_x = self.grid.x(self.tokens.spacing.margin_left_pct + split + gutter / 2)
-        right_w = self.grid.w(1.0 - self.tokens.spacing.margin_left_pct
-                               - self.tokens.spacing.margin_right_pct - split - gutter / 2)
-
-        # Left: text blocks
-        if content.body_blocks:
-            txBox = slide.shapes.add_textbox(
-                EmuU(self.grid.content_x), EmuU(self.grid.content_y),
-                EmuU(left_w), EmuU(self.grid.content_h)
-            )
+        for zone_key, zone_blocks in [("left", left_blocks), ("right", right_blocks)]:
+            if zone_key not in tpl or not zone_blocks:
+                continue
+            zx, zy, zw, zh = tpl[zone_key]
+            txBox = slide.shapes.add_textbox(EmuU(zx), EmuU(zy), EmuU(zw), EmuU(zh))
             tf = txBox.text_frame
             tf.word_wrap = True
-            for block in content.body_blocks:
+            for block in zone_blocks:
                 apply_text_block(tf, block, self.tokens)
-
-        # Right: chart, diagram, or table
-        if content.chart:
-            chart_png = render_chart(content.chart, self.tokens)
-            slide.shapes.add_picture(chart_png,
-                                      EmuU(right_x), EmuU(self.grid.content_y),
-                                      EmuU(right_w), EmuU(self.grid.content_h))
-        elif content.diagram:
-            diag_png = render_diagram_sync(content.diagram.mermaid,
-                                            content.diagram.caption or "diagram")
-            slide.shapes.add_picture(diag_png,
-                                      EmuU(right_x), EmuU(self.grid.content_y),
-                                      EmuU(right_w), EmuU(self.grid.content_h))
-        elif content.table:
-            # Re-render table in right zone
-            from pptx.util import Emu as EmuU
-            spec = content.table
-            rows = len(spec.rows) + 1
-            cols = len(spec.headers)
-            slide.shapes.add_table(rows, cols,
-                                    EmuU(right_x), EmuU(self.grid.content_y),
-                                    EmuU(right_w), EmuU(self.grid.content_h))

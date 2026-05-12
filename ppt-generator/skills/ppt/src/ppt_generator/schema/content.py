@@ -34,7 +34,8 @@ class ChartSpec(BaseModel):
 
 
 class DiagramSpec(BaseModel):
-    mermaid: str
+    svg: str | None = None           # SVG XML 문자열 (AI가 직접 작성)
+    aws_diagram: str | None = None   # AWS 아키텍처 (draw.io PNG base64, aws-architect 에이전트가 채움)
     caption: str | None = None
 
 
@@ -65,8 +66,13 @@ class SlideContent(BaseModel):
     diagram: DiagramSpec | None = None
     table: TableSpec | None = None
 
-    # 레이아웃 힌트
-    layout_hint: str | None = None  # ContentAgent가 DesignAgent에 넘기는 레이아웃 힌트
+    # Layout template — ContentAgent가 직접 지정 (DesignAgent 불필요)
+    # 선택지: text_only | viz_only | text_top_viz_bottom |
+    #         text_left_viz_right | viz_left_text_right | two_column_text
+    layout_template: str | None = None
+
+    # (구) 레이아웃 힌트 — 하위 호환을 위해 유지, 신규 코드는 layout_template 사용
+    layout_hint: str | None = None
 
     # 발표자 노트 (3~5문장, 상세하게)
     speaker_notes: str

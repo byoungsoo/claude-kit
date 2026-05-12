@@ -13,6 +13,10 @@ class ColorPalette(BaseModel):
     success: str = "#22C55E"
     warning: str = "#F59E0B"
     danger: str = "#EF4444"
+    border: str = "#E2E8F0"
+    text_muted: str = "#94A3B8"
+    surface2: str = "#F1F5F9"
+    accent2: str = "#10B981"
 
 
 class Typography(BaseModel):

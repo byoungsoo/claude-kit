@@ -11,16 +11,10 @@ tools: Read
 사용 가능한 slide_type:
 - `title` — 표지
 - `section` — 섹션 구분
-- `content_text` — 텍스트 중심
-- `content_chart` — 차트 포함
-- `content_diagram` — 다이어그램 포함
-- `two_column` — 2단 구성
-- `three_column` — 3단 구성
-- `full_width_chart` — 전체 화면 차트
-- `data_story` — 데이터 스토리
-- `comparison_table` — 비교 테이블
-- `quote` — 인용
+- `content` — 일반 콘텐츠 (차트/다이어그램/테이블/텍스트 모두 이 타입)
 - `closing` — 마무리
+
+> 레이아웃 상세(텍스트 위치, 시각화 크기 등)는 ContentAgent가 `layout_template`으로 결정합니다. 아웃라인에서는 슬라이드의 역할(title/section/content/closing)만 구분합니다.
 
 ## 내러티브 원칙
 

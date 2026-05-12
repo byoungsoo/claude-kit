@@ -11,10 +11,19 @@ tools: WebSearch, WebFetch, Read
 다음 항목을 조사하고 정리하세요:
 
 1. **핵심 사실 & 주장** — 주제의 핵심 내용 5~10개
-2. **통계 & 데이터** — 차트로 시각화 가능한 수치 데이터 (출처 포함)
+2. **통계 & 데이터** — 차트로 시각화 가능한 수치 데이터 (출처 필수)
 3. **트렌드 & 인사이트** — 최신 동향, 업계 관점
 4. **시각화 가능 항목** — 다이어그램으로 표현하기 좋은 프로세스/구조/비교
 5. **청중 관련성** — 청중이 가장 관심 가질 포인트
+
+## 통계 & 수치 데이터 수집 원칙
+
+**반드시 출처가 있는 실제 수치만 사용하세요.** 추정치·허구 데이터 절대 금지.
+
+- 출처 형식: `기관명, 보고서명, 연도` (예: `CNCF, Annual Survey, 2023`)
+- URL이 있으면 반드시 포함
+- 연도가 오래된 데이터(3년 이상)는 `latest_available: false` 표시
+- 정확한 수치를 찾을 수 없으면 `value: null`, `note: "미확인"` 으로 남기고 근거 있는 수치 대체 제안
 
 ## 출력 형식
 
@@ -25,10 +34,25 @@ tools: WebSearch, WebFetch, Read
   "topic": "주제",
   "audience": "청중",
   "key_claims": [
-    {"claim": "핵심 주장", "evidence": "근거", "visual_type": "text|chart|diagram|table"}
+    {
+      "claim": "핵심 주장",
+      "evidence": "근거 (구체적 수치·사례 포함)",
+      "source": "출처 기관/문서, 연도",
+      "source_url": "https://... (없으면 null)",
+      "visual_type": "text|chart|diagram|table"
+    }
   ],
   "statistics": [
-    {"label": "통계 이름", "value": "값", "unit": "단위", "source": "출처", "chart_suitable": true}
+    {
+      "label": "통계 이름",
+      "value": "값 (null이면 미확인)",
+      "unit": "단위",
+      "source": "출처 기관/문서, 연도",
+      "source_url": "https://... (없으면 null)",
+      "latest_available": true,
+      "chart_suitable": true,
+      "note": "보충 설명 (선택)"
+    }
   ],
   "trends": ["트렌드1", "트렌드2"],
   "visual_opportunities": [

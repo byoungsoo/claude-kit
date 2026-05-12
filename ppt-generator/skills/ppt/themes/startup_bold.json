@@ -13,11 +13,11 @@
     "danger": "#EF4444"
   },
   "typography": {
-    "heading_font": "Calibri",
-    "body_font": "Calibri",
-    "heading_size_h1": 44,
-    "heading_size_h2": 30,
-    "heading_size_h3": 22,
+    "heading_font": "Malgun Gothic",
+    "body_font": "Malgun Gothic",
+    "heading_size_h1": 36,
+    "heading_size_h2": 26,
+    "heading_size_h3": 20,
     "body_size": 15,
     "caption_size": 11,
     "line_spacing_pct": 150

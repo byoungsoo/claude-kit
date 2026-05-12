@@ -21,7 +21,15 @@ from ..rendering.renderer import SlideRenderer
 app = typer.Typer(name="render", help="Render PPTX from JSON data produced by Claude agents.")
 console = Console()
 
-THEMES_DIR = Path(__file__).parent.parent.parent.parent.parent / "themes"
+def _find_package_root() -> Path:
+    current = Path(__file__).parent
+    while current != current.parent:
+        if (current / "pyproject.toml").exists():
+            return current
+        current = current.parent
+    raise RuntimeError("Cannot find package root (pyproject.toml not found)")
+
+THEMES_DIR = _find_package_root() / "themes"
 VALID_THEMES = ["corporate_navy", "startup_bold", "dark_tech", "academic_clean"]
 
 

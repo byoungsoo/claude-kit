@@ -4,6 +4,23 @@ from ..schema.content import ChartSpec
 from ..schema.design import DesignTokens
 
 
+def _setup_korean_font() -> str:
+    """Return a Korean-capable font name available on this system."""
+    import matplotlib.font_manager as fm
+    candidates = [
+        "Malgun Gothic",
+        "Apple SD Gothic Neo",
+        "NanumGothic",
+        "Noto Sans CJK KR",
+        "Noto Sans KR",
+    ]
+    available = {f.name for f in fm.fontManager.ttflist}
+    for name in candidates:
+        if name in available:
+            return name
+    return "sans-serif"
+
+
 def render_chart(spec: ChartSpec, tokens: DesignTokens,
                  width_px: int = 800, height_px: int = 500) -> io.BytesIO:
     """Render a ChartSpec to PNG bytes using plotly (preferred) or matplotlib."""
@@ -15,12 +32,14 @@ def render_chart(spec: ChartSpec, tokens: DesignTokens,
 def _build_plotly_template(tokens: DesignTokens) -> dict:
     colors = tokens.colors
     typo = tokens.typography
+    # plotly에서 Malgun Gothic은 직접 지원되지 않으므로 CJK 지원 web-safe 스택 사용
+    font_family = "Malgun Gothic, Apple SD Gothic Neo, Noto Sans KR, sans-serif"
     return {
         "layout": {
             "paper_bgcolor": colors.background,
             "plot_bgcolor": colors.surface,
             "font": {
-                "family": typo.body_font,
+                "family": font_family,
                 "color": colors.text_primary,
                 "size": 13,
             },
@@ -28,11 +47,22 @@ def _build_plotly_template(tokens: DesignTokens) -> dict:
                 colors.primary, colors.secondary, colors.accent,
                 colors.success, colors.warning, colors.danger,
             ],
-            "title": {"font": {"size": typo.heading_size_h3, "color": colors.primary}},
-            "xaxis": {"gridcolor": colors.surface, "linecolor": colors.text_secondary},
-            "yaxis": {"gridcolor": colors.surface, "linecolor": colors.text_secondary},
-            "legend": {"bgcolor": "rgba(0,0,0,0)"},
-            "margin": {"l": 50, "r": 30, "t": 60, "b": 50},
+            "title": {"font": {"size": typo.heading_size_h3, "color": colors.primary,
+                               "family": font_family}},
+            "xaxis": {
+                "gridcolor": colors.surface,
+                "linecolor": colors.text_secondary,
+                "tickangle": -30,
+                "tickfont": {"family": font_family, "size": 11},
+                "automargin": True,
+            },
+            "yaxis": {
+                "gridcolor": colors.surface,
+                "linecolor": colors.text_secondary,
+                "tickfont": {"family": font_family, "size": 11},
+            },
+            "legend": {"bgcolor": "rgba(0,0,0,0)", "font": {"family": font_family}},
+            "margin": {"l": 60, "r": 30, "t": 70, "b": 80},
         }
     }
 
@@ -111,7 +141,7 @@ def _render_plotly(spec: ChartSpec, tokens: DesignTokens,
             ))
 
     fig.update_layout(
-        title=spec.title,
+        title=dict(text=spec.title, font=template["layout"]["title"]["font"]),
         showlegend=spec.show_legend,
         xaxis_title=spec.x_label,
         yaxis_title=spec.y_label,
@@ -120,6 +150,9 @@ def _render_plotly(spec: ChartSpec, tokens: DesignTokens,
         font=template["layout"]["font"],
         colorway=template["layout"]["colorway"],
         margin=template["layout"]["margin"],
+        xaxis=template["layout"]["xaxis"],
+        yaxis=template["layout"]["yaxis"],
+        legend=template["layout"]["legend"],
     )
 
     buf = io.BytesIO()
@@ -134,6 +167,10 @@ def _render_matplotlib(spec: ChartSpec, tokens: DesignTokens,
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     import numpy as np
+
+    font_name = _setup_korean_font()
+    matplotlib.rcParams["font.family"] = font_name
+    matplotlib.rcParams["axes.unicode_minus"] = False
 
     colors = tokens.colors
     color_seq = [colors.primary, colors.secondary, colors.accent, colors.success, colors.warning]
@@ -151,7 +188,10 @@ def _render_matplotlib(spec: ChartSpec, tokens: DesignTokens,
             ax.bar(x + offset, series.values, width, label=series.name,
                    color=color_seq[i % len(color_seq)])
         ax.set_xticks(x)
-        ax.set_xticklabels(spec.categories, color=colors.text_primary)
+        max_label_len = max((len(c) for c in spec.categories), default=0)
+        rotation = -30 if max_label_len > 6 else 0
+        ax.set_xticklabels(spec.categories, color=colors.text_primary,
+                           rotation=rotation, ha="left" if rotation else "center")
 
     elif spec.chart_type == "line":
         for i, series in enumerate(spec.series):
