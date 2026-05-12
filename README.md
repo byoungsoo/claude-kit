@@ -56,6 +56,7 @@ claude-kit/
 
 각 kit의 상세 사용법은 kit 디렉토리의 README를 참고하세요:
 - [ppt-generator/README.md](ppt-generator/README.md)
+- [drawio-generator/README.md](drawio-generator/README.md)
 
 ---
 
