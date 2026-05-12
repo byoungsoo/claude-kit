@@ -221,6 +221,8 @@
 | CodeWhisperer | mxgraph.aws4.codewhisperer | `outlineConnect=0;fontColor=#232F3E;fillColor=#01A88D;strokeColor=#FFFFFF;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.codewhisperer;` |
 | OpenSearch Service | mxgraph.aws4.opensearch_service | `outlineConnect=0;fontColor=#232F3E;fillColor=#01A88D;strokeColor=#FFFFFF;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=10;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.opensearch_service;` |
 
+> ※ OpenSearch: draw.io에 `opensearch_service` 셰이프가 없을 경우 `resIcon=mxgraph.aws4.elasticsearch_service` 로 대체
+
 ---
 
 ### Analytics

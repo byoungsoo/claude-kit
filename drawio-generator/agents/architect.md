@@ -43,9 +43,13 @@ tools: Read, WebSearch, WebFetch
 ### 2. 요구사항 분석
 
 - 다이어그램 유형 결정: `aws_architecture` / `api_flow` / `system_diagram`
-- AWS 아키텍처: 리전, VPC, AZ, 서브넷 구조 결정
+- **detail_level 결정**:
+  - 사용자 요청에 "간단", "심플", "simple", "개요", "overview" 등이 포함되면 → `simple`
+  - 그 외 → `standard`
+- `simple`: 불필요한 그룹 계층을 최대한 생략해 간결하게 표현한다. Region, VPC, AZ, Subnet 중 어떤 그룹을 포함할지는 아키텍처 특성과 서비스 성격을 고려해 에이전트가 스스로 판단한다. 목표는 핵심 서비스와 흐름만 드러나는 가장 단순한 구조.
+- `standard`: Region → VPC → AZ → Subnet 전체 구조 설계
 - 서비스 간 트래픽 흐름 파악
-- 고가용성/보안/확장성 요소 반영
+- 고가용성/보안/확장성 요소 반영 (standard일 때만)
 
 ### 3. 스펙 작성
 
@@ -63,6 +67,7 @@ tools: Read, WebSearch, WebFetch
 ### 메타
 - 유형: aws_architecture | api_flow | system_diagram
 - 페이지 크기: small(노드 5↓) | medium(6~15) | large(16↑)
+- detail_level: simple | standard
 - 흐름 방향: top-down | left-right
 - 리서치 요약: {발견한 제약 및 선택한 설계 결정 근거. 없으면 "제약 없음"}
 
