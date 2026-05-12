@@ -8,21 +8,22 @@ Claude Code에서 사용하는 커스텀 kit를 관리하는 리포지토리.
 
 ## 컨셉
 
-Claude Code 자체가 AI 역할을 수행합니다. Python은 PPTX 조립 등 순수 렌더링만 담당합니다.
+Claude Code에서 사용하는 **스킬·에이전트를 kit 단위로 관리**하고, `deploy.sh` 한 번으로 어느 PC에서든 동일한 환경을 재현합니다.
 
 ```
-사용자 요청
-    ↓
-SKILL.md (오케스트레이터)
-    ↓ 서브에이전트 순차 호출
-  @ppt-research → @ppt-outline → @ppt-content → @ppt-design → @ppt-qa
-    ↓ JSON 결과
-Python 렌더러 (python-pptx)
-    ↓
-output.pptx
+claude-kit (이 리포지토리)
+    ↓ ./deploy.sh <kit> add global | add project /path
+~/.claude/ 또는 <project>/.claude/
+    ├── skills/   ← 오케스트레이터 (SKILL.md)
+    ├── agents/   ← 역할별 서브에이전트
+    └── rules/    ← 조건부 로드 지침
 ```
 
-별도의 API 키가 필요 없습니다. Claude Code 세션이 곧 AI 엔진입니다.
+- **Claude Code가 AI 엔진** — 별도 API 키 불필요, 세션이 곧 실행 환경
+- **kit 단위 독립 관리** — 여러 kit를 같은 대상에 배포해도 kit명 prefix로 충돌 없음
+- **global / project 배포** — 모든 프로젝트에서 쓸 kit은 global, 특정 프로젝트에 종속된 kit은 project로 배포
+- **항상 copy 배포** — 모든 파일을 복사본으로 배포. 소스 수정 후 재배포하면 반영됨
+- **`__PROJECT_ROOT__` placeholder** — 배포 시 실제 경로로 자동 치환 (global → `$HOME`, project → 지정 경로)
 
 ---
 
@@ -35,39 +36,26 @@ claude-kit/
 ├── settings.json          ← Claude Code 권한 설정
 ├── deploy.sh              ← 배포 스크립트 (kit 단위, prefix 적용)
 │
-└── ppt-generator/                ← PPT 자동 생성 kit
+└── <kit-name>/            ← 독립된 kit 디렉토리 (예: ppt-generator, drawio-generator)
     ├── skills/
-    │   └── ppt/                  ← 오케스트레이터 스킬
-    │       ├── SKILL.md          ← 파이프라인 실행 지침
-    │       ├── src/              ← Python 렌더러 (python-pptx)
-    │       │   └── ppt_generator/
-    │       │       ├── cli/render.py     ← JSON → PPTX 변환 CLI
-    │       │       ├── rendering/        ← 슬라이드 렌더링
-    │       │       └── schema/           ← Pydantic 데이터 계약
-    │       ├── themes/           ← 디자인 테마 JSON
-    │       └── scripts/          ← PPTX 편집 유틸리티
-    ├── agents/                   ← Claude 서브에이전트
-    │   ├── ppt-research.md       ← 주제 리서치
-    │   ├── ppt-outline.md        ← 슬라이드 구조 설계
-    │   ├── ppt-content.md        ← 슬라이드별 콘텐츠 생성
-    │   ├── ppt-design.md         ← 레이아웃·디자인 스펙
-    │   └── ppt-qa.md             ← 품질 검토 및 재생성 판정
-    └── rules/
-        └── ppt-detail.md         ← PPT 스킬 상세 참조
+    │   └── <skill-name>/  ← 오케스트레이터 스킬
+    │       └── SKILL.md   ← 파이프라인 실행 지침 (description, deploy-scope frontmatter)
+    ├── agents/            ← Claude 서브에이전트 (역할별 .md)
+    └── rules/             ← 조건부 로드 지침
 ```
 
 ---
 
 ## Kit 목록
 
-| Kit | 호출 방법 | 설명 |
-|-----|-----------|------|
-| `ppt-generator` | `/ppt-generator-ppt <주제>` 또는 자연어 | 주제 → 한국어 PPTX 자동 생성 |
+| Kit | 호출 방법 | 배포 범위 | 설명 |
+|-----|-----------|-----------|------|
+| `ppt-generator` | `/ppt-generator-ppt <주제>` 또는 자연어 | global | 주제 → 한국어 PPTX 자동 생성 |
+| `resume-manager` | `/resume-manager-resume <공고>` 또는 자연어 | project | 채용공고 → 맞춤 이력서 자동 작성 |
+| `drawio-generator` | `/drawio-generator-drawio <주제>` 또는 자연어 | both | AWS 아키텍처·시스템 구성도 draw.io 자동 생성 |
 
-**자연어 호출 예시:**
-- `"ppt 만들어줘"`
-- `"쿠버네티스 보안에 대한 발표자료 만들어줘"`
-- `"AI 트렌드 12장짜리 pptx 생성해줘"`
+각 kit의 상세 사용법은 kit 디렉토리의 README를 참고하세요:
+- [ppt-generator/README.md](ppt-generator/README.md)
 
 ---
 
@@ -80,88 +68,17 @@ git clone <repo-url> ~/claude-kit
 cd ~/claude-kit
 ```
 
-### 2. Python 렌더러 의존성 설치
+### 2. 배포
 
 ```bash
-pip3 install -r ppt-generator/skills/ppt/requirements.txt --break-system-packages
+# global kit — 모든 프로젝트에서 사용 가능
+./deploy.sh ppt-generator add global
 
-# 다이어그램 고품질 렌더링 (선택)
-npm install -g @mermaid-js/mermaid-cli
-```
-
-### 3. 배포
-
-```bash
-# 전역 배포 — 모든 프로젝트에서 사용 가능
-./deploy.sh ppt-generator global
-
-# 특정 프로젝트에만 배포
-./deploy.sh ppt-generator project /path/to/my-project
+# project kit — 특정 프로젝트 경로를 지정해서 배포
+./deploy.sh drawio-generator add project /path/to/my-project
 ```
 
 배포 후 Claude Code를 재시작하면 slash command와 자동 호출이 활성화됩니다.
-
----
-
-## ppt-generator 사용법
-
-### 기본 사용
-
-```
-/ppt-generator-ppt 쿠버네티스 보안 모범 사례
-```
-
-또는 그냥 대화하듯:
-
-```
-쿠버네티스 보안 모범 사례에 대한 발표자료 만들어줘
-```
-
-### 옵션
-
-| 옵션 | 기본값 | 설명 |
-|------|--------|------|
-| `--slides N` | 12 | 슬라이드 수 |
-| `--theme 이름` | corporate_navy | 디자인 테마 |
-| `--audience 청중` | 일반 전문가 | 대상 청중 |
-| `--output 경로` | ./output.pptx | 출력 파일 경로 |
-| `--duration N` | 20 | 발표 시간(분) |
-
-### 테마
-
-| 테마 | 특징 |
-|------|------|
-| `corporate_navy` | 네이비/오렌지, 기업 발표용 |
-| `startup_bold` | 퍼플/핑크, 스타트업용 |
-| `dark_tech` | 다크모드, 기술 발표용 |
-| `academic_clean` | 화이트/네이비, 학술용 |
-
-### 파이프라인
-
-```
-1. @ppt-research  — 주제 리서치 (웹 검색, 통계, 시각화 포인트 수집)
-2. @ppt-outline   — 내러티브 구조 설계 (슬라이드 목록, 전환 흐름)
-3. @ppt-content   — 슬라이드별 콘텐츠 생성 (텍스트, 차트 스펙, 다이어그램)
-4. @ppt-design    — 레이아웃·디자인 스펙 결정
-5. @ppt-qa        — 품질 검토 (7점 미만 슬라이드 자동 재생성, 최대 2회)
-6. Python 렌더러  — JSON → PPTX 조립
-```
-
-### PPTX 편집 모드
-
-기존 파일 수정 시 `scripts/` 유틸리티 사용:
-
-```bash
-cd ppt-generator/skills/ppt
-
-# 썸네일로 현황 파악
-python3 scripts/thumbnail.py file.pptx thumbnails --cols 4
-
-# XML 편집
-python3 scripts/office/unpack.py file.pptx unpacked/
-# ... XML 수정 ...
-python3 scripts/office/pack.py unpacked/ output.pptx
-```
 
 ---
 
@@ -169,37 +86,71 @@ python3 scripts/office/pack.py unpacked/ output.pptx
 
 kit 단위로 배포하며, 모든 파일에 **kit명을 prefix**로 붙여 여러 kit가 충돌하지 않습니다.
 
-| 대상 | 처리 방식 | 배포 후 경로 |
-|------|-----------|-------------|
-| `skills/<name>/` | 심링크 | `<target>/skills/<kit>-<name>/` |
-| `agents/<name>.md` | 심링크 | `<target>/agents/<kit>-<name>.md` |
-| `rules/<name>.md` | 심링크 | `<target>/rules/<kit>-<name>.md` |
+### 파일별 처리 방식
 
-모두 심링크 방식이므로 `git pull` 후 재배포 없이 변경이 즉시 반영됩니다.
+모든 파일은 **복사본(copy)**으로 배포됩니다. `__PROJECT_ROOT__` placeholder가 포함된 파일은 복사 시 실제 경로로 치환됩니다.
+
+| 배포 모드 | `__PROJECT_ROOT__` 치환값 |
+|-----------|--------------------------|
+| `global` | `$HOME` |
+| `project /path` | `/path` (지정한 절대경로) |
+
+소스 파일을 수정한 경우 `deploy.sh`를 다시 실행해야 배포본에 반영됩니다.
+
+### deploy-scope
+
+SKILL.md frontmatter의 `deploy-scope`로 배포 가능한 모드를 제한합니다.
+
+| 값 | 동작 |
+|----|------|
+| `global` | `global` 모드만 허용 |
+| `project` | `project` 모드만 허용 |
+| `both` 또는 미설정 | 제한 없음 |
 
 ### 사용법
 
 ```bash
-./deploy.sh <kit-name> global
-./deploy.sh <kit-name> project /path/to/project
+# 전역 배포
+./deploy.sh <kit-name> add global
+
+# 프로젝트 배포 — __PROJECT_ROOT__ 를 지정 경로로 치환
+./deploy.sh <kit-name> add project /path/to/project
+
+# 배포 제거
 ./deploy.sh <kit-name> remove global
 ./deploy.sh <kit-name> remove project /path/to/project
 ```
 
-### 배포 후 생성되는 파일 (`ppt-generator global` 기준)
+### 배포 후 생성되는 파일 예시
+
+**`ppt-generator add global` 기준**
 
 ```
 ~/.claude/
 ├── skills/
-│   └── ppt-generator-ppt/          → <repo>/ppt-generator/skills/ppt/ (심링크)
+│   └── ppt-generator-ppt/             ← 복사본
 ├── agents/
-│   ├── ppt-generator-ppt-research.md  → <repo>/ppt-generator/agents/ppt-research.md (심링크)
+│   ├── ppt-generator-ppt-research.md  ← 복사본
 │   ├── ppt-generator-ppt-outline.md
 │   ├── ppt-generator-ppt-content.md
-│   ├── ppt-generator-ppt-design.md
-│   └── ppt-generator-ppt-qa.md
+│   └── ppt-generator-ppt-design.md
 └── rules/
-    └── ppt-generator-ppt-detail.md → <repo>/ppt-generator/rules/ppt-detail.md (심링크)
+    └── ppt-generator-ppt-detail.md    ← 복사본
+```
+
+**`drawio-generator add project ~/workspace/myproject` 기준**
+
+```
+~/workspace/myproject/.claude/
+├── skills/
+│   └── drawio-generator-drawio/       ← 복사본 (__PROJECT_ROOT__ → ~/workspace/myproject 치환됨)
+│       ├── SKILL.md
+│       └── assets/
+│           └── aws4-styles.md
+└── agents/
+    ├── drawio-generator-architect.md  ← 복사본
+    ├── drawio-generator-draw.md       ← 복사본
+    └── drawio-generator-qa.md         ← 복사본
 ```
 
 ---
@@ -216,8 +167,11 @@ claude-kit/
 ```
 
 1. `<kit-name>/` 디렉토리에 위 구조로 파일 작성
-2. `SKILL.md`에 `description` frontmatter 추가 (자연어 자동 호출용)
-3. `./deploy.sh <kit-name> global` 실행
+2. `SKILL.md` frontmatter에 아래 항목 추가:
+   - `description` — 자연어 자동 호출 트리거 문구 (필수)
+   - `deploy-scope: global | project | both` — 배포 범위 제한 (선택, 미설정 시 `both`)
+3. 프로젝트 경로에 의존하는 경우 해당 위치에 `__PROJECT_ROOT__` placeholder 사용
+4. `./deploy.sh <kit-name> add global` 또는 `add project /path` 실행
 
 ---
 

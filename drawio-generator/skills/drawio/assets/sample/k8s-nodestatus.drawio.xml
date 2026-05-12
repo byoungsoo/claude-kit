@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net">
+  <diagram name="페이지-1" id="N_E5fvZ0DM5x8Ca1GKyu">
+    <mxGraphModel dx="2881" dy="1116" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" edge="1" parent="1" source="8" style="endArrow=none;html=1;rounded=0;startArrow=none;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="120" y="611" as="sourcePoint" />
+            <mxPoint x="120" y="171" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="3" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;entryX=0.505;entryY=1.027;entryDx=0;entryDy=0;entryPerimeter=0;" target="5" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="400" y="960" as="sourcePoint" />
+            <mxPoint x="400" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="4" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="680" y="960" as="sourcePoint" />
+            <mxPoint x="680" y="170" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="5" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b&gt;API Server&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="80" x="360" y="141" as="geometry" />
+        </mxCell>
+        <mxCell id="6" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b&gt;Kubelet&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="70" x="645" y="141" as="geometry" />
+        </mxCell>
+        <mxCell id="7" edge="1" parent="1" style="endArrow=none;html=1;rounded=0;" target="8" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="120" y="960" as="sourcePoint" />
+            <mxPoint x="120" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b&gt;Kube Controller Manager&lt;br&gt;(Node Controller)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="40" width="170" x="35" y="136" as="geometry" />
+        </mxCell>
+        <mxCell id="9" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b&gt;kubelet posts node status&lt;/b&gt;&lt;br&gt;&lt;br&gt;nodeStatusReportFrequency&lt;br&gt;Default: 5m" vertex="1">
+          <mxGeometry height="70" width="180" x="445" y="374" as="geometry" />
+        </mxCell>
+        <mxCell id="10" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="120" y="480" as="sourcePoint" />
+            <mxPoint x="400" y="480" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="11" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b&gt;Check node status&lt;br&gt;&lt;/b&gt;&lt;br&gt;--node-monitor-period&lt;br&gt;Default: 5s" vertex="1">
+          <mxGeometry height="70" width="140" x="190" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="12" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=1.5;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="680" y="374" as="sourcePoint" />
+            <mxPoint x="400" y="374" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="13" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b&gt;Amount of time which allowed Node to be unresponsive&lt;/b&gt;&lt;br&gt;&lt;br&gt;--node-monitor-grace-period&lt;br&gt;Default: 50s (40s =&amp;lt; 1.31)" vertex="1">
+          <mxGeometry height="70" width="340" x="-40" y="603" as="geometry" />
+        </mxCell>
+        <mxCell id="14" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="80" y="560" />
+              <mxPoint x="80" y="580" />
+              <mxPoint x="80" y="600" />
+            </Array>
+            <mxPoint x="120" y="560" as="sourcePoint" />
+            <mxPoint x="120" y="600" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="15" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="120" y="680" as="sourcePoint" />
+            <mxPoint x="400" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="16" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b&gt;Mark Unhealthy&lt;br&gt;&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="110" x="205" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="17" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b style=&quot;border-color: var(--border-color);&quot;&gt;Triggering API-initiated&lt;/b&gt;&lt;br&gt;PodEvictionTimeout&lt;br style=&quot;border-color: var(--border-color);&quot;&gt;Default: 5m" vertex="1">
+          <mxGeometry height="60" width="160" x="50" y="815" as="geometry" />
+        </mxCell>
+        <mxCell id="18" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="80" y="760" />
+              <mxPoint x="80" y="780" />
+              <mxPoint x="80" y="800" />
+            </Array>
+            <mxPoint x="120" y="760" as="sourcePoint" />
+            <mxPoint x="120" y="800" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="19" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="120" y="880" as="sourcePoint" />
+            <mxPoint x="400" y="880" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="20" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b&gt;Submitting the first eviction request&lt;br&gt;&lt;/b&gt;" vertex="1">
+          <mxGeometry height="30" width="230" x="145" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="21" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <Array as="points">
+              <mxPoint x="724" y="200" />
+              <mxPoint x="724" y="220" />
+              <mxPoint x="724" y="240" />
+            </Array>
+            <mxPoint x="681" y="200" as="sourcePoint" />
+            <mxPoint x="681" y="240" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="22" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b&gt;kubelet calculate status&lt;br&gt;&lt;/b&gt;&lt;br&gt;nodeStatusUpdateFrequency&lt;br&gt;Default: 10s" vertex="1">
+          <mxGeometry height="70" width="180" x="725" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="23" parent="1" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" value="&lt;b&gt;kubelet update lease&lt;/b&gt;&lt;br&gt;&lt;br&gt;nodeLeaseDurationSeconds / KEP-0009&lt;br&gt;Default: 10s" vertex="1">
+          <mxGeometry height="70" width="240" x="415" y="276" as="geometry" />
+        </mxCell>
+        <mxCell id="24" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=1.5;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="680" y="276" as="sourcePoint" />
+            <mxPoint x="400" y="276" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
