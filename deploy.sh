@@ -93,7 +93,21 @@ usage() {
   for d in "$REPO_ROOT"/*/; do
     name="$(basename "$d")"
     [[ "$name" == .* ]] && continue
-    [[ -d "$d/skills" || -d "$d/agents" || -d "$d/rules" ]] && echo "  $name"
+    [[ -d "$d/skills" || -d "$d/agents" || -d "$d/rules" ]] || continue
+
+    # SKILL.md에서 description, deploy-scope 읽기
+    skill_md="$(find "$d/skills" -name "SKILL.md" 2>/dev/null | head -1)"
+    desc=""
+    scope=""
+    if [[ -f "$skill_md" ]]; then
+      desc=$(grep "^description:" "$skill_md" | sed 's/^description:[[:space:]]*//' | cut -c1-60)
+      scope=$(grep "^deploy-scope:" "$skill_md" | sed 's/^deploy-scope:[[:space:]]*//')
+    fi
+
+    printf "  %-22s" "$name"
+    [[ -n "$scope" ]] && printf "[%-8s] " "$scope" || printf "[%-8s] " "both"
+    [[ -n "$desc" ]] && printf "%s" "$desc"
+    echo ""
   done
   exit 1
 }
