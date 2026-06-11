@@ -26,6 +26,11 @@ tools: Read
 `shape=mxgraph.aws4.resourceIcon` 을 포함하는 모든 mxCell의 `mxGeometry`에서:
 - width ≠ 80 이거나 height ≠ 80 이면 위반
 
+#### 검증 항목 1-1 — source/target 명시
+XML 내 모든 edge(`edge="1"`) 에서:
+- `source` 속성 또는 `target` 속성이 없으면 위반 (floating 연결)
+- source/target 값이 실제 존재하는 cell ID를 참조하지 않으면 위반
+
 #### 검증 항목 2 — Resource Icon 스타일
 `shape=mxgraph.aws4.resourceIcon` 을 포함하는 모든 mxCell에서:
 - `resIcon` 값을 추출하고 aws4-styles.md에서 해당 아이콘의 fillColor, strokeColor를 조회

@@ -1,0 +1,288 @@
+# Terraform 코드 규칙
+
+이 리포지토리에서 Terraform 코드를 작성할 때 반드시 따라야 하는 구조·네이밍·코드 스타일 규칙.
+
+---
+
+## 1. 디렉토리 구조
+
+```
+account/
+└── aws-{env}-{region}/        # 예: aws-dev-ap2, aws-manage-ue1
+    └── {component}/           # 예: vpc, eks, tgw, vpc-endpoint
+        ├── provider.tf
+        ├── main.tf
+        ├── output.tf
+        ├── versions.tf
+        ├── var.default.tf
+        ├── var.{component}.tf
+        ├── var.{component}.auto.tfvars
+        └── environments/
+            └── {env}.tfvars   # 예: dev.tfvars
+```
+
+**규칙:**
+- 계정+리전 디렉토리: `aws-{env}-{region}` 패턴 필수
+- 컴포넌트 디렉토리: 단일 기능 단위 (vpc, eks, tgw 등)
+- 설정 가능한 변수는 tfvars 파일로 관리
+
+---
+
+## 2. 환경 및 리전 식별자
+
+| 구분 | 식별자 | 설명 |
+|------|--------|------|
+| **환경** | `manage` | 관리 계정 (Account ID: 692806374063) |
+| | `dev` | 개발 계정 (Account ID: 558846430793) |
+| | `shared` | 공유 계정 (Account ID: 202949997891) |
+| **리전** | `ue1` | us-east-1 |
+| | `ap2` | ap-northeast-2 (서울) |
+| | `ap3` | ap-northeast-3 (오사카) |
+| **가용영역** | `az1` | apne2-az1 (az1) |
+| | `az2` | apne2-az2 (az2) |
+| | `az3` | apne2-az3 (az3) |
+
+---
+
+## 3. 리소스 네이밍 규칙
+
+### 기본 패턴
+```
+{project_code}-{account}-{region_code}-{resource_type}[-{az}]-{name}
+```
+
+- **project_code**: 항상 `bys`
+- **account**: `manage` | `dev` | `shared`
+- **region_code**: `ue1` | `ap2` | `ap3`
+- **resource_type**: 리소스 타입 약어 (아래 표 참조)
+- **az**: 가용 영역 (서브넷 등 AZ 종속 리소스에만 적용, 예: `az1`, `az2`, `az3`)
+- **name**: 용도 식별자 (예: `main`, `dmz`, `app`, `db`)
+
+### 리소스 타입 약어
+
+| 타입 | 약어 | 예시 |
+|------|------|------|
+| VPC | `vpc` | `bys-dev-ap2-vpc-main` |
+| Subnet | `sbn` | `bys-dev-ap2-sbn-az1-app` |
+| Transit Gateway | `tgw` | `bys-manage-ue1-tgw-main` |
+| TGW Attachment | `tgw-attach` | `bys-manage-ue1-tgw-attach-dev-ap2` |
+| TGW Peering | `tgw-peering` | `bys-manage-ue1-tgw-peering-to-ap2` |
+| EKS Cluster | `eks` | `bys-dev-ap2-eks-main` |
+| IAM Role | `role` | `bys-dev-ap2-role-eks-cluster` |
+| S3 Bucket | `s3` | `bys-shared-ap2-s3-terraform` |
+| Security Group | `sg` | `bys-dev-ap2-sg-eks-node` |
+
+### 서브넷 타입 (name 값)
+
+| name | 용도 | 가시성 |
+|------|------|--------|
+| `dmz` | 공용 DMZ (IGW 라우팅) | Public |
+| `extelb` | 외부 로드밸런서 | Public |
+| `app` | 애플리케이션 / Karpenter | Private |
+| `intelb` | 내부 로드밸런서 (AWS LBC) | Private |
+| `db` | 데이터베이스 | Private |
+| `prvonly` | NAT 없는 완전 Private | Private |
+
+---
+
+## 4. 표준 변수 정의
+
+모든 컴포넌트는 아래 변수를 반드시 포함해야 한다.
+
+### var.default.tf (공통 변수)
+
+```hcl
+variable "project_code" {
+  type    = string
+  default = "bys"
+}
+
+variable "account" {
+  type    = string
+  # "manage" | "dev" | "shared"
+}
+
+variable "aws_region" {
+  type    = string
+  # 예: "ap-northeast-2"
+}
+
+variable "aws_region_code" {
+  type    = string
+  # 예: "ap2"
+}
+
+variable "common_tags" {
+  type = map(string)
+  default = {
+    "Terraform"   = "true"
+    "auto-delete" = "no"
+  }
+}
+```
+
+**공통 리소스 이름 패턴 (locals 사용):**
+```hcl
+locals {
+  common_resource_name = "${var.project_code}-${var.account}-${var.aws_region_code}"
+}
+```
+
+---
+
+## 5. 파일 명명 규칙
+
+| 파일 | 역할 |
+|------|------|
+| `provider.tf` | Provider 설정 + Backend 설정 |
+| `main.tf` | 주요 리소스 및 모듈 호출 |
+| `output.tf` | Output 값 정의 |
+| `versions.tf` | Terraform/Provider 버전 제약 |
+| `var.default.tf` | 공통 변수 (project_code, account, region 등) |
+| `var.{component}.tf` | 컴포넌트 전용 변수 선언 |
+| `var.{component}.auto.tfvars` | 기본 변수 값 (자동 로드) |
+| `{purpose}.tf` | 목적별 분리 (예: `addons.tf`, `endpoint.tf`, `peering.tf`) |
+| `environments/{env}.tfvars` | 환경별 오버라이드 값 |
+
+---
+
+## 6. Backend 설정 패턴
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket  = "bys-shared-ap2-s3-terraform"
+    key     = "aws-{account}/{region}/{component}/terraform.tfstate"
+    region  = "ap-northeast-2"
+    encrypt = true
+  }
+}
+```
+
+**Key 예시:**
+- `aws-manage-ue1/vpc/terraform.tfstate`
+- `aws-dev-ap2/eks/terraform.tfstate`
+- `aws-shared-ap2/vpc/terraform.tfstate`
+
+---
+
+## 7. Provider 설정 패턴
+
+### 단일 계정/리전
+```hcl
+provider "aws" {
+  region = var.aws_region
+
+  assume_role {
+    role_arn = "arn:aws:iam::{account_id}:role/{Env}TerraformRole"
+  }
+}
+```
+
+### 멀티 계정/리전 (alias 사용)
+```hcl
+provider "aws" {
+  alias  = "dev-ap2"
+  region = "ap-northeast-2"
+
+  assume_role {
+    role_arn = "arn:aws:iam::558846430793:role/DevTerraformRole"
+  }
+}
+
+provider "aws" {
+  alias  = "shared-ap2"
+  region = "ap-northeast-2"
+
+  assume_role {
+    role_arn = "arn:aws:iam::202949997891:role/SharedTerraformRole"
+  }
+}
+```
+
+**IAM Role 명명:**
+- manage: `ManageTerraformRole`
+- dev: `DevTerraformRole`
+- shared: `SharedTerraformRole`
+
+---
+
+## 8. 태그 규칙
+
+모든 리소스에 아래 태그를 필수 적용한다.
+
+```hcl
+tags = merge(
+  { "Name" = "${local.common_resource_name}-{resource_identifier}" },
+  var.common_tags,
+)
+```
+
+**필수 태그:**
+- `Name`: `{common_resource_name}-{식별자}` 패턴
+- `Terraform`: `"true"`
+- `auto-delete`: `"no"` ← 자동 삭제 방지, 반드시 포함
+- `Environment`: `"dev"` | `"manage"` | `"shared"`
+
+---
+
+## 9. Versions 설정
+
+```hcl
+terraform {
+  required_version = ">= 1.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 5.0"
+    }
+  }
+}
+```
+
+모듈에서는 더 구체적인 버전 제약 사용 가능: `>= 5.46`
+
+---
+
+## 10. Locals 사용 패턴
+
+```hcl
+locals {
+  common_resource_name = "${var.project_code}-${var.account}-${var.aws_region_code}"
+
+  # 서브넷 필터링 예시
+  nat_subnets = [
+    for subnet in aws_subnet.public_subnets : subnet.id
+    if strcontains(subnet.tags["Name"], "dmz")
+  ]
+}
+```
+
+---
+
+## 12. CIDR 블록 현황
+
+| 계정-리전 | VPC CIDR | 비고 |
+|-----------|----------|------|
+| manage-ue1 | 10.5.0.0/16 | + secondary: 100.64.0.0/16 |
+| manage-ap2 | 10.0.0.0/16 | |
+| manage-ap3 | 10.3.0.0/16 | |
+| dev-ap2 | 10.20.0.0/16 | |
+| dev-ap3 | 10.30.0.0/16 | |
+| dev-ue1 | 10.25.0.0/16 | |
+| shared-ap2 | 10.10.0.0/16 | |
+
+**서브넷 CIDR 크기 기준:**
+- `dmz`, `extelb`, `intelb`, `db`, `prvonly`: `/24`
+- `app` (Karpenter): `/21`
+
+---
+
+## 13. 코드 스타일
+
+- 들여쓰기: 스페이스 2칸
+- 블록 내 속성 정렬: 값 기준 정렬 권장
+- 변수 설명: `description` 필드 필수
+- `for` 표현식으로 리소스 반복 처리 (count보다 `for_each` 선호)
+- cross-account 참조는 `locals`에 명시적으로 하드코딩 후 참조

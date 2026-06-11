@@ -1,5 +1,5 @@
 ---
-description: draw.io 다이어그램 생성을 요청할 때 호출. AWS 아키텍처, API 흐름, 시스템 구성도 등. 예: "아키텍처 그려줘", "다이어그램 만들어줘", "draw.io로 그려줘"
+description: draw.io 다이어그램 생성을 요청할 때 호출. AWS 아키텍처, API 흐름, 시스템 구성도 등. 예: "아키텍처 그려줘", "다이어그램 만들어줘", "draw.io로 그려줘, draw.io 파일을 수정해줘"
 argument-hint: "<주제 또는 설명> [--output 경로]"
 deploy-scope: both
 ---
@@ -7,30 +7,6 @@ deploy-scope: both
 # draw.io 다이어그램 생성 스킬
 
 당신은 draw.io 다이어그램 생성 오케스트레이터입니다.
-
-## 사전 확인 — draw.io MCP 연결 여부
-
-**파이프라인 시작 전 반드시** 사용자에게 아래 내용을 확인합니다:
-
-```
-draw.io 다이어그램 생성에는 draw.io MCP 연결이 필요합니다.
-
-draw.io MCP가 연결되어 있지 않은 경우 먼저 설치가 필요합니다:
-  1. draw.io 데스크탑 앱 설치: https://www.drawio.com
-  2. Claude Code에 draw.io MCP 서버 연결
-
-draw.io MCP가 준비되어 있으신가요? (Y/N)
-```
-
-- **Y** → 파이프라인 진행
-- **N** → 설치 안내 후 종료:
-  ```
-  draw.io 설치 후 다시 시도해주세요.
-  설치: https://www.drawio.com (데스크탑 앱)
-  MCP 연결: Claude Code 설정에서 draw.io MCP 서버 추가
-  ```
-
----
 
 ## 파라미터 파싱 및 확인
 
@@ -71,7 +47,7 @@ aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/drawio-generator-drawio/a
 `[2/3] XML 생성 중...` 을 사용자에게 알린 뒤, `@drawio-generator-draw` 에이전트를 실행합니다:
 
 ```
-아래 아키텍처 스펙을 draw.io XML로 변환해주세요. (MCP 임포트는 아직 하지 마세요)
+아래 아키텍처 스펙을 draw.io XML로 변환해주세요.
 
 aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/drawio-generator-drawio/assets/aws4-styles.md
 
@@ -84,7 +60,7 @@ aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/drawio-generator-drawio/a
 
 ### 3단계 — QA 검증
 
-`[3/4] 스타일 검증 중...` 을 사용자에게 알린 뒤, `@drawio-generator-qa` 에이전트를 실행합니다:
+`[3/3] 스타일 검증 중...` 을 사용자에게 알린 뒤, `@drawio-generator-qa` 에이전트를 실행합니다:
 
 ```
 아래 XML이 aws4-styles.md 스타일 규칙을 준수하는지 검증해주세요.
@@ -94,7 +70,7 @@ aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/drawio-generator-drawio/a
 {drawio_xml}
 ```
 
-- **PASS** → 4단계로 진행
+- **PASS** → 파일 저장 단계로 진행
 - **FAIL** → 위반 목록을 포함해 `@drawio-generator-draw` 에이전트를 재실행합니다 (최대 1회):
 
 ```
@@ -113,25 +89,9 @@ aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/drawio-generator-drawio/a
 
 ---
 
-### 4단계 — draw.io 앱 반영 및 파일 저장
+### 파일 저장
 
-`[4/4] 저장 중...` 을 사용자에게 알린 뒤, 아래를 순서대로 실행합니다.
-
-**draw.io MCP 임포트** — `@drawio-generator-draw` 에이전트를 실행합니다:
-
-```
-아래 XML을 MCP로 draw.io 앱에 임포트해주세요.
-
-{drawio_xml}
-```
-
-**파일 저장** — `drawio_xml`을 `{output}` 경로에 저장합니다:
-
-```bash
-cat > {output} << 'EOF'
-{drawio_xml}
-EOF
-```
+`drawio_xml`을 `{output}` 경로에 저장합니다 (Write 도구 사용).
 
 ---
 
@@ -139,8 +99,8 @@ EOF
 
 ```
 ✓ 다이어그램 생성 완료
-  - draw.io 앱: 반영 완료
   - 파일: {output}
+  - draw.io 앱에서 파일을 열어 확인하세요.
 ```
 
 오류 발생 시 단계와 오류 메시지를 명확히 보고하세요.

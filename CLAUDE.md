@@ -49,6 +49,7 @@ claude-kit/
 | `ppt-generator` | `/ppt-generator-ppt` 또는 자연어 | `ppt-generator/rules/ppt-detail.md` 참조 |
 | `resume-manager` | `/resume-manager-resume` 또는 자연어 | 채용공고 기반 이력서 작성 파이프라인 |
 | `drawio-generator` | `/drawio-generator-drawio` 또는 자연어 | AWS 아키텍처·시스템 구성도 draw.io 자동 생성 |
+| `terraform` | `/terraform-generator-terraform` 또는 자연어 | Terraform 코드 작성·수정 (project 배포 필수) |
 
 ## 새 Kit 추가 방법
 

@@ -1,6 +1,8 @@
 {
   "permissions": {
     "allow": [
+      "mcp__drawio__*",
+      "WebFetch(*)",
       "Read",
       "Write",
       "Edit",
