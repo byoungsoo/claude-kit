@@ -152,17 +152,36 @@ locals {
 terraform {
   backend "s3" {
     bucket  = "bys-shared-ap2-s3-terraform"
-    key     = "aws-{account}/{region}/{component}/terraform.tfstate"
+    key     = "aws-{env}-{region-code}/{project-name}/{service-name}/terraform.tfstate"
     region  = "ap-northeast-2"
     encrypt = true
   }
 }
 ```
 
-**Key 예시:**
-- `aws-manage-ue1/vpc/terraform.tfstate`
-- `aws-dev-ap2/eks/terraform.tfstate`
-- `aws-shared-ap2/vpc/terraform.tfstate`
+### Key 구조
+
+```
+aws-{env}-{region-code}/{project-name}/{service-name}/terraform.tfstate
+```
+
+| 세그먼트 | 설명 | 예시 |
+|----------|------|------|
+| `{env}-{region-code}` | 계정 환경 + 리전 코드 | `dev-ue1`, `dev-ap2`, `manage-ue1` |
+| `{project-name}` | 프로젝트 이름. 공통 인프라는 `common` | `common`, `aws-whats-new` |
+| `{service-name}` | 서비스/컴포넌트 이름 | `vpc-endpoint`, `eks`, `vpc` |
+
+### Key 예시
+
+**기본 공통 인프라** (`common` 프로젝트):
+- `aws-dev-ue1/common/vpc-endpoint/terraform.tfstate`
+- `aws-dev-ap2/common/vpc/terraform.tfstate`
+- `aws-manage-ue1/common/tgw/terraform.tfstate`
+- `aws-shared-ap2/common/vpc/terraform.tfstate`
+
+**특정 프로젝트**:
+- `aws-dev-ap2/aws-whats-new/eks/terraform.tfstate`
+- `aws-dev-ap2/aws-whats-new/rds/terraform.tfstate`
 
 ---
 
