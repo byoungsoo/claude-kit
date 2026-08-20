@@ -1,5 +1,5 @@
 ---
-name: ppt-content
+name: __KIT_NAME__-content
 description: 아웃라인의 각 슬라이드에 대한 상세 콘텐츠를 생성한다. 텍스트, 차트 스펙, SVG 다이어그램, 테이블을 포함한다.
 tools: Read
 ---

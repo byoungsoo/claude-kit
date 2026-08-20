@@ -1,5 +1,5 @@
 ---
-name: ppt-outline
+name: __KIT_NAME__-outline
 description: 리서치 결과를 바탕으로 PPT 전체 구조(아웃라인)를 설계한다. 내러티브 흐름과 슬라이드 구성을 결정한다.
 tools: Read
 ---

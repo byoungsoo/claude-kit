@@ -1,5 +1,5 @@
 ---
-name: ppt-qa
+name: __KIT_NAME__-qa
 description: 생성된 슬라이드 콘텐츠를 검토하고 품질 점수를 매긴다. 7점 미만 슬라이드는 개선 방향을 제시한다.
 tools: Read
 ---

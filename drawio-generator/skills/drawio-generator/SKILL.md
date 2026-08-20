@@ -29,13 +29,13 @@ deploy-scope: both
 
 ### 1단계 — 아키텍처 설계
 
-`[1/3] 아키텍처 설계 중...` 을 사용자에게 알린 뒤, `@drawio-generator-architect` 에이전트를 실행합니다:
+`[1/3] 아키텍처 설계 중...` 을 사용자에게 알린 뒤, `@__KIT_NAME__-architect` 에이전트를 실행합니다:
 
 ```
 유형: {diagram_type}
 주제: {주제}
 상세 설명: {사용자가 제공한 전체 설명}
-aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/drawio-generator-drawio/assets/aws4-styles.md
+aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/__KIT_NAME__/assets/aws4-styles.md
 ```
 
 완료되면 결과(아키텍처 스펙)를 `arch_spec`에 저장합니다.
@@ -44,12 +44,12 @@ aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/drawio-generator-drawio/a
 
 ### 2단계 — XML 생성
 
-`[2/3] XML 생성 중...` 을 사용자에게 알린 뒤, `@drawio-generator-draw` 에이전트를 실행합니다:
+`[2/3] XML 생성 중...` 을 사용자에게 알린 뒤, `@__KIT_NAME__-draw` 에이전트를 실행합니다:
 
 ```
 아래 아키텍처 스펙을 draw.io XML로 변환해주세요.
 
-aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/drawio-generator-drawio/assets/aws4-styles.md
+aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/__KIT_NAME__/assets/aws4-styles.md
 
 {arch_spec}
 ```
@@ -60,23 +60,23 @@ aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/drawio-generator-drawio/a
 
 ### 3단계 — QA 검증
 
-`[3/3] 스타일 검증 중...` 을 사용자에게 알린 뒤, `@drawio-generator-qa` 에이전트를 실행합니다:
+`[3/3] 스타일 검증 중...` 을 사용자에게 알린 뒤, `@__KIT_NAME__-qa` 에이전트를 실행합니다:
 
 ```
 아래 XML이 aws4-styles.md 스타일 규칙을 준수하는지 검증해주세요.
 
-aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/drawio-generator-drawio/assets/aws4-styles.md
+aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/__KIT_NAME__/assets/aws4-styles.md
 
 {drawio_xml}
 ```
 
 - **PASS** → 파일 저장 단계로 진행
-- **FAIL** → 위반 목록을 포함해 `@drawio-generator-draw` 에이전트를 재실행합니다 (최대 1회):
+- **FAIL** → 위반 목록을 포함해 `@__KIT_NAME__-draw` 에이전트를 재실행합니다 (최대 1회):
 
 ```
 아래 스타일 위반 사항을 수정하여 XML을 다시 생성해주세요.
 
-aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/drawio-generator-drawio/assets/aws4-styles.md
+aws4-styles.md 경로: __PROJECT_ROOT__/.claude/skills/__KIT_NAME__/assets/aws4-styles.md
 
 [위반 목록]
 {qa_result}

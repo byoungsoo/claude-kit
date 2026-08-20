@@ -4,7 +4,7 @@ Claude Code에서 `/ppt` 명령으로 호출하는 한국어 고품질 PPTX 자�
 
 단순한 슬라이드 변환이 아닌 **멀티 에이전트 파이프라인**으로 리서치 → 내러티브 설계 → 슬라이드 작성 → 디자인 → QA까지 전 과정을 자동화합니다.
 
-> 이 README는 `skills/ppt/` 디렉토리 단독 설명입니다.
+> 이 README는 `skills/ppt-generator/` 디렉토리 단독 설명입니다.
 > 리포지토리 전체 구조·설치·배포는 **루트 README.md** 를 참고하세요.
 
 ---
@@ -14,7 +14,7 @@ Claude Code에서 `/ppt` 명령으로 호출하는 한국어 고품질 PPTX 자�
 ### 1. 의존성 설치
 
 ```bash
-# skills/ppt/ 디렉토리에서 실행
+# skills/ppt-generator/ 디렉토리에서 실행
 pip3 install -r requirements.txt --break-system-packages
 ```
 
@@ -35,7 +35,7 @@ python3 -m src.ppt_generator.cli.main generate "<주제>" [옵션]
 ## 디렉토리 구조
 
 ```
-skills/ppt/
+skills/ppt-generator/
 ├── README.md                   ← 이 파일
 ├── SKILL.md                    ← Claude에게 전달하는 실행 지침 (생성 + 편집 모드)
 ├── pyproject.toml

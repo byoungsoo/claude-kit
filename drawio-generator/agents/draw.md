@@ -1,5 +1,5 @@
 ---
-name: drawio-generator-draw
+name: __KIT_NAME__-draw
 description: architect 에이전트가 출력한 아키텍처 스펙을 받아 draw.io XML로 변환한다. 스타일은 aws4-styles.md에서만 가져온다.
 tools: Read
 ---

@@ -1,5 +1,5 @@
 ---
-name: drawio-generator-qa
+name: __KIT_NAME__-qa
 description: draw.io XML이 aws4-styles.md 스타일 규칙을 준수하는지 검증한다. 스타일 위반 항목만 보고한다.
 tools: Read
 ---

@@ -32,7 +32,7 @@ deploy-scope: project
 
 ### 1단계 — 회사 분석
 
-`[1/4] 회사 및 직무 분석 중...` 을 사용자에게 알린 뒤, `@resume-manager-company-researcher` 에이전트를 **백그라운드로** 실행합니다:
+`[1/4] 회사 및 직무 분석 중...` 을 사용자에게 알린 뒤, `@__KIT_NAME__-company-researcher` 에이전트를 **백그라운드로** 실행합니다:
 
 ```
 작업 디렉토리: __PROJECT_ROOT__
@@ -51,7 +51,7 @@ deploy-scope: project
 
 ### 2단계 — 이력서 작성
 
-`[2/4] 이력서 작성 중...` 을 사용자에게 알린 뒤, `@resume-manager-resume-writer` 에이전트를 **백그라운드로** 실행합니다:
+`[2/4] 이력서 작성 중...` 을 사용자에게 알린 뒤, `@__KIT_NAME__-writer` 에이전트를 **백그라운드로** 실행합니다:
 
 ```
 작업 디렉토리: __PROJECT_ROOT__
@@ -73,7 +73,7 @@ deploy-scope: project
 
 ### 3단계 — QA 리뷰
 
-`[3/4] 이력서 QA 리뷰 중...` 을 사용자에게 알린 뒤, `@resume-manager-resume-reviewer` 에이전트를 **백그라운드로** 실행합니다:
+`[3/4] 이력서 QA 리뷰 중...` 을 사용자에게 알린 뒤, `@__KIT_NAME__-reviewer` 에이전트를 **백그라운드로** 실행합니다:
 
 ```
 작업 디렉토리: __PROJECT_ROOT__
@@ -95,7 +95,7 @@ deploy-scope: project
 
 ### 4단계 — 합격 가능성 평가
 
-`[4/4] 합격 가능성 평가 중...` 을 사용자에게 알린 뒤, `@resume-manager-hr-leader` 에이전트를 **백그라운드로** 실행합니다:
+`[4/4] 합격 가능성 평가 중...` 을 사용자에게 알린 뒤, `@__KIT_NAME__-hr-leader` 에이전트를 **백그라운드로** 실행합니다:
 
 ```
 작업 디렉토리: __PROJECT_ROOT__

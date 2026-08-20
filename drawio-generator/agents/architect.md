@@ -1,5 +1,5 @@
 ---
-name: drawio-generator-architect
+name: __KIT_NAME__-architect
 description: AWS 아키텍처 및 시스템 구성을 설계한다. 요구사항을 분석하고 사용할 서비스와 레이아웃을 결정해 draw 에이전트가 바로 XML로 변환할 수 있는 구조화된 스펙을 출력한다.
 tools: Read, WebSearch, WebFetch
 ---

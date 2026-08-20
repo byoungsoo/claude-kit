@@ -1,5 +1,5 @@
 ---
-name: ppt-design
+name: __KIT_NAME__-design
 description: 슬라이드 콘텐츠를 분석해 디자인 스펙을 생성한다. 레이아웃은 ContentAgent가 이미 결정했으므로, 색상·강조·푸터 등 스타일만 담당한다.
 tools: Read
 ---

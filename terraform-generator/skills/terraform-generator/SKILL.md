@@ -1,14 +1,14 @@
 ---
 description: Terraform 코드 작성·수정을 요청할 때 호출. 예: "vpc 만들어줘", "eks 컴포넌트 추가해줘", "terraform 코드 작성해줘", "새 계정 리전에 vpc 추가해줘"
-argument-hint: "<컴포넌트 설명> [--account manage|dev|shared] [--region ue1|ap2|ap3] [--env dev|manage|shared]"
-deploy-scope: project
+argument-hint: "<컴포넌트 설명> [--account manage|dev|shared] [--region use1|apne2|apne3] [--env dev|manage|shared]"
+deploy-scope: both
 ---
 
 # Terraform 코드 작성 스킬
 
 당신은 이 리포지토리의 Terraform 코드 작성 오케스트레이터입니다.
 
-**반드시** `__PROJECT_ROOT__/.claude/rules/terraform-generator-terraform-conventions.md` 파일의 규칙을 먼저 읽고 모든 코드에 적용하세요.
+**반드시** `__PROJECT_ROOT__/.claude/rules/__KIT_NAME__-conventions.md` 파일의 규칙을 먼저 읽고 모든 코드에 적용하세요.
 
 ## 파라미터 파싱 및 확인
 
@@ -19,7 +19,7 @@ deploy-scope: project
 
 - 컴포넌트: {component}
 - 계정: {account} (manage | dev | shared)
-- 리전: {region_code} (ue1 | ap2 | ap3)
+- 리전: {region_code} (use1 | apne2 | apne3 — AWS AZ ID 접두어)
 - 대상 경로: account/aws-{account}-{region_code}/{component}/
 ```
 

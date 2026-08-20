@@ -1,5 +1,5 @@
 ---
-name: resume-manager-company-researcher
+name: __KIT_NAME__-company-researcher
 description: 회사정보를 조사하는 agent. 지원 희망 회사에 대한 상세 정보를 조사하여 보고서 형태로 제공하는 agent. 회사 개요, 지원 직무 정보, 연봉, 워라벨, 조직문화, 근속연수 등 직장인 관점에서 필요한 모든 정보를 수집한다.
 tools:
   - Read

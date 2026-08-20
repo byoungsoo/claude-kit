@@ -30,7 +30,7 @@ AWS 아키텍처·시스템 구성도를 자연어로 요청하면 서브에이�
 ### 기본 사용
 
 ```
-/drawio-generator-drawio 3-tier 웹 아키텍처 (2 AZ, ALB + EC2 + RDS)
+/drawio-generator 3-tier 웹 아키텍처 (2 AZ, ALB + EC2 + RDS)
 ```
 
 또는 자연어로:
@@ -42,7 +42,7 @@ AWS 아키텍처 그려줘. EKS 기반 마이크로서비스, ap-northeast-2, 2 
 ### 출력 경로 지정
 
 ```
-/drawio-generator-drawio VPC 기본 구조 --output ./my-arch.drawio
+/drawio-generator VPC 기본 구조 --output ./my-arch.drawio
 ```
 
 `--output` 미지정 시 `./diagram.drawio`에 저장됩니다.
@@ -66,12 +66,12 @@ SKILL.md (오케스트레이터)
 
 | 파일 | 역할 |
 |------|------|
-| `skills/drawio/SKILL.md` | 파이프라인 오케스트레이터 |
+| `skills/drawio-generator/SKILL.md` | 파이프라인 오케스트레이터 |
 | `agents/architect.md` | 아키텍처 설계 서브에이전트 |
 | `agents/draw.md` | draw.io XML 생성 서브에이전트 |
 | `agents/qa.md` | 스타일 검증 서브에이전트 |
-| `skills/drawio/assets/aws4-styles.md` | AWS4 아이콘·그룹 스타일 단일 소스 |
-| `skills/drawio/assets/sample/` | 참고용 샘플 다이어그램 |
+| `skills/drawio-generator/assets/aws4-styles.md` | AWS4 아이콘·그룹 스타일 단일 소스 |
+| `skills/drawio-generator/assets/sample/` | 참고용 샘플 다이어그램 |
 
 ---
 

@@ -65,21 +65,92 @@ check_scope() {
   esac
 }
 
-# 파일을 대상 경로에 복사한다. __PROJECT_ROOT__ 가 있으면 치환한다.
+# 파일 안의 placeholder를 실제 값으로 치환한다 (in-place).
+#   __PROJECT_ROOT__ → 배포 대상 경로 (global=$HOME, project=실제경로)
+#   __KIT_NAME__     → kit 디렉토리 이름 (배포 시 붙는 prefix와 항상 일치)
+# sed -i 는 GNU/BSD 문법이 달라 임시 파일 + mv 로 처리한다.
+substitute_placeholders() {
+  local file="$1"
+  local project_root="$2"
+  local kit_name="$3"
+
+  grep -q "__PROJECT_ROOT__\|__KIT_NAME__" "$file" 2>/dev/null || return 1
+
+  local tmp="${file}.tmp.$$"
+  sed -e "s|__PROJECT_ROOT__|${project_root}|g" \
+      -e "s|__KIT_NAME__|${kit_name}|g" "$file" > "$tmp"
+  mv "$tmp" "$file"
+  return 0
+}
+
+# 배포 이름을 만든다. kit명을 prefix로 붙이되, 이름이 이미 kit명으로 시작하면 그대로 쓴다.
+# kit 내부 파일명에 kit명을 반복하지 않아도 되게 해준다 (stutter 방지).
+#   kit=terraform-generator, name=terraform-generator → terraform-generator
+#   kit=terraform-generator, name=conventions         → terraform-generator-conventions
+prefixed_name() {
+  local kit="$1"
+  local name="$2"
+  case "$name" in
+    "$kit"|"$kit"-*) echo "$name" ;;
+    *)              echo "${kit}-${name}" ;;
+  esac
+}
+
+# 파일을 대상 경로에 복사한 뒤 placeholder를 치환한다.
 deploy_file() {
   local src="$1"           # 원본 파일
   local dest="$2"          # 배포 대상 경로
-  local project_root="$3"  # 치환할 경로 (global=$HOME, project=실제경로)
-  local label="$4"         # 출력용 레이블
+  local project_root="$3"  # __PROJECT_ROOT__ 치환값
+  local kit_name="$4"      # __KIT_NAME__ 치환값
+  local label="$5"         # 출력용 레이블
 
   rm -f "$dest"
-  if grep -q "__PROJECT_ROOT__" "$src" 2>/dev/null; then
-    sed "s|__PROJECT_ROOT__|${project_root}|g" "$src" > "$dest"
-    echo "  ✓ $label (PROJECT_ROOT=${project_root})"
+  cp "$src" "$dest"
+  if substitute_placeholders "$dest" "$project_root" "$kit_name"; then
+    echo "  ✓ $label (PROJECT_ROOT=${project_root}, KIT_NAME=${kit_name})"
   else
-    cp "$src" "$dest"
     echo "  ✓ $label"
   fi
+}
+
+# 배포된 파일들이 참조하는 <target>/... 경로가 실제로 존재하는지 검증한다.
+# placeholder 치환 결과가 실제 배포 파일명과 어긋나는 경우를 잡아낸다.
+verify_references() {
+  local target="$1"
+  local project_root="$2"
+  local missing=0
+  local esc_root
+
+  [[ -n "$project_root" ]] || return 0
+  # grep 정규식에서 특수문자로 해석되지 않게 escape (구분자는 / 와 겹치지 않게 #)
+  esc_root="$(printf '%s' "$project_root" | sed 's#[][\.*^$(){}?+|/]#\\&#g')"
+
+  local search_dirs=()
+  for d in skills agents rules; do
+    if [[ -d "$target/$d" ]]; then search_dirs+=("$target/$d"); fi
+  done
+  [[ ${#search_dirs[@]} -gt 0 ]] || return 0
+
+  while IFS= read -r -d '' f; do
+    while IFS= read -r ref; do
+      [[ -n "$ref" ]] || continue
+      if [[ ! -e "$ref" ]]; then
+        echo "  ⚠ 참조 경로 없음: ${ref}"
+        echo "      ↳ 참조한 파일: ${f#"$target"/}"
+        missing=$((missing + 1))
+      fi
+    done < <(grep -oE "${esc_root}/\.claude/[A-Za-z0-9_@./-]+" "$f" 2>/dev/null \
+             | sed 's/[.,)]*$//' | sort -u)
+  done < <(find "${search_dirs[@]}" -type f -print0 2>/dev/null)
+
+  if [[ $missing -gt 0 ]]; then
+    echo ""
+    echo "  검증 실패: 존재하지 않는 경로 참조 ${missing}건."
+    echo "  kit 파일에서 prefix를 하드코딩하지 말고 __KIT_NAME__ placeholder를 사용하세요."
+    return 1
+  fi
+  echo "  ✓ 참조 경로 검증 통과"
+  return 0
 }
 
 usage() {
@@ -132,26 +203,24 @@ deploy() {
   local kit_dir="$REPO_ROOT/$kit_name"
   [[ -d "$kit_dir" ]] || { echo "오류: kit '$kit_name' 을 찾을 수 없습니다."; usage; }
 
-  # skills/ — SKILL.md 등 개별 파일은 deploy_file로, 나머지 디렉토리는 심링크
+  # skills/ — 디렉토리 단위 복사 후 placeholder 치환
   if [[ -d "$kit_dir/skills" ]]; then
     mkdir -p "$target/skills"
     for skill_dir in "$kit_dir/skills"/*/; do
       [[ -d "$skill_dir" ]] || continue
       skill_name="$(basename "$skill_dir")"
-      dest_dir="$target/skills/${kit_name}-${skill_name}"
+      deployed="$(prefixed_name "$kit_name" "$skill_name")"
+      dest_dir="$target/skills/${deployed}"
 
       scope="$(read_deploy_scope "$skill_dir")"
-      check_scope "${kit_name}-${skill_name}" "$scope" "$MODE"
+      check_scope "$deployed" "$scope" "$MODE"
 
-      # 디렉토리를 항상 복사 후 __PROJECT_ROOT__ 치환
       rm -rf "$dest_dir"
       cp -r "$skill_dir" "$dest_dir"
       while IFS= read -r -d '' f; do
-        if grep -q "__PROJECT_ROOT__" "$f" 2>/dev/null; then
-          sed -i "" "s|__PROJECT_ROOT__|${project_root}|g" "$f"
-        fi
+        substitute_placeholders "$f" "$project_root" "$kit_name" || true
       done < <(find "$dest_dir" -type f -print0)
-      echo "  ✓ skills/${kit_name}-${skill_name}${project_root:+ (PROJECT_ROOT=${project_root})}"
+      echo "  ✓ skills/${deployed}${project_root:+ (PROJECT_ROOT=${project_root}, KIT_NAME=${kit_name})}"
     done
   fi
 
@@ -160,9 +229,9 @@ deploy() {
     mkdir -p "$target/agents"
     for agent_file in "$kit_dir/agents"/*.md; do
       [[ -f "$agent_file" ]] || continue
-      agent_name="$(basename "$agent_file" .md)"
-      dest="$target/agents/${kit_name}-${agent_name}.md"
-      deploy_file "$agent_file" "$dest" "$project_root" "agents/${kit_name}-${agent_name}.md"
+      deployed="$(prefixed_name "$kit_name" "$(basename "$agent_file" .md)")"
+      dest="$target/agents/${deployed}.md"
+      deploy_file "$agent_file" "$dest" "$project_root" "$kit_name" "agents/${deployed}.md"
     done
   fi
 
@@ -171,10 +240,18 @@ deploy() {
     mkdir -p "$target/rules"
     for rule_file in "$kit_dir/rules"/*.md; do
       [[ -f "$rule_file" ]] || continue
-      rule_name="$(basename "$rule_file" .md)"
-      dest="$target/rules/${kit_name}-${rule_name}.md"
-      deploy_file "$rule_file" "$dest" "$project_root" "rules/${kit_name}-${rule_name}.md"
+      deployed="$(prefixed_name "$kit_name" "$(basename "$rule_file" .md)")"
+      dest="$target/rules/${deployed}.md"
+      deploy_file "$rule_file" "$dest" "$project_root" "$kit_name" "rules/${deployed}.md"
     done
+  fi
+
+  echo ""
+  echo "참조 경로 검증 중..."
+  if ! verify_references "$target" "$project_root"; then
+    echo ""
+    echo "배포는 완료되었으나 [$kit_name] 에 깨진 참조가 있습니다: $target"
+    exit 1
   fi
 
   echo ""
@@ -193,12 +270,12 @@ remove_deploy() {
   if [[ -d "$kit_dir/skills" ]]; then
     for skill_dir in "$kit_dir/skills"/*/; do
       [[ -d "$skill_dir" ]] || continue
-      skill_name="$(basename "$skill_dir")"
-      dest="$target/skills/${kit_name}-${skill_name}"
+      deployed="$(prefixed_name "$kit_name" "$(basename "$skill_dir")")"
+      dest="$target/skills/${deployed}"
       if [[ -L "$dest" ]]; then
-        rm "$dest" && echo "  ✓ 제거: skills/${kit_name}-${skill_name}"
+        rm "$dest" && echo "  ✓ 제거: skills/${deployed}"
       elif [[ -d "$dest" ]]; then
-        rm -rf "$dest" && echo "  ✓ 제거: skills/${kit_name}-${skill_name}"
+        rm -rf "$dest" && echo "  ✓ 제거: skills/${deployed}"
       fi
     done
   fi
@@ -207,10 +284,10 @@ remove_deploy() {
   if [[ -d "$kit_dir/agents" ]]; then
     for agent_file in "$kit_dir/agents"/*.md; do
       [[ -f "$agent_file" ]] || continue
-      agent_name="$(basename "$agent_file" .md)"
-      dest="$target/agents/${kit_name}-${agent_name}.md"
+      deployed="$(prefixed_name "$kit_name" "$(basename "$agent_file" .md)")"
+      dest="$target/agents/${deployed}.md"
       if [[ -L "$dest" || -f "$dest" ]]; then
-        rm "$dest" && echo "  ✓ 제거: agents/${kit_name}-${agent_name}.md"
+        rm "$dest" && echo "  ✓ 제거: agents/${deployed}.md"
       fi
     done
   fi
@@ -219,10 +296,10 @@ remove_deploy() {
   if [[ -d "$kit_dir/rules" ]]; then
     for rule_file in "$kit_dir/rules"/*.md; do
       [[ -f "$rule_file" ]] || continue
-      rule_name="$(basename "$rule_file" .md)"
-      dest="$target/rules/${kit_name}-${rule_name}.md"
+      deployed="$(prefixed_name "$kit_name" "$(basename "$rule_file" .md)")"
+      dest="$target/rules/${deployed}.md"
       if [[ -L "$dest" || -f "$dest" ]]; then
-        rm "$dest" && echo "  ✓ 제거: rules/${kit_name}-${rule_name}.md"
+        rm "$dest" && echo "  ✓ 제거: rules/${deployed}.md"
       fi
     done
   fi

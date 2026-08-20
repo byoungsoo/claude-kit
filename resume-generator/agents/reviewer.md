@@ -1,5 +1,5 @@
 ---
-name: resume-manager-resume-reviewer
+name: __KIT_NAME__-reviewer
 description: 이력서, 자기소개서, 지원서 등 작성된 한국어 또는 영어 문서를 검토하고 리뷰한다. 문법 오류, 문맥 흐름의 어색함, AI 투의 표현 여부, 인간적인 작문 형태인지를 평가하고, 사실 정합성(질문-답변 일치, 도입 문장 불일치, 경험 왜곡)을 1~10점으로 스코어링하여 재작업 여부를 판정한다.
 tools:
   - Read

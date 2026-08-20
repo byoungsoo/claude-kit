@@ -1,5 +1,5 @@
 ---
-name: ppt-aws-architect
+name: __KIT_NAME__-aws-architect
 description: AWS 아키텍처 다이어그램을 draw.io MCP로 생성하고 PNG base64를 반환한다.
 tools: mcp__drawio__import-diagram, mcp__drawio__export-diagram, mcp__drawio__create-page, mcp__drawio__get-shape-categories, mcp__drawio__get-shapes-in-category, mcp__drawio__get-shape-by-name, mcp__drawio__list-pages, mcp__drawio__rename-page
 ---

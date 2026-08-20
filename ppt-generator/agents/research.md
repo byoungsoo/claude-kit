@@ -1,5 +1,5 @@
 ---
-name: ppt-research
+name: __KIT_NAME__-research
 description: PPT 생성을 위한 리서치 수행. 주제에 대한 핵심 사실, 통계, 데이터, 시각화 가능 항목을 수집한다.
 tools: WebSearch, WebFetch, Read
 ---

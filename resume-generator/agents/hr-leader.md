@@ -1,5 +1,5 @@
 ---
-name: resume-manager-hr-leader
+name: __KIT_NAME__-hr-leader
 description: 인사팀장 역할의 agent. 채용공고와 지원자 이력서를 받아 합격 가능성과 수정 포인트를 인사팀장 관점에서 리뷰한다. company-researcher가 이미 조사한 회사 분석 결과를 활용하므로 추가 웹 조사는 하지 않는다.
 tools:
   - Read

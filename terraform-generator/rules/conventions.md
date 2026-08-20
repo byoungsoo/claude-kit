@@ -8,7 +8,7 @@
 
 ```
 account/
-└── aws-{env}-{region}/        # 예: aws-dev-ap2, aws-manage-ue1
+└── aws-{env}-{region}/        # 예: aws-dev-apne2, aws-manage-use1
     └── {component}/           # 예: vpc, eks, tgw, vpc-endpoint
         ├── provider.tf
         ├── main.tf
@@ -30,17 +30,28 @@ account/
 
 ## 2. 환경 및 리전 식별자
 
-| 구분 | 식별자 | 설명 |
-|------|--------|------|
-| **환경** | `manage` | 관리 계정 (Account ID: 692806374063) |
-| | `dev` | 개발 계정 (Account ID: 558846430793) |
-| | `shared` | 공유 계정 (Account ID: 202949997891) |
-| **리전** | `ue1` | us-east-1 |
-| | `ap2` | ap-northeast-2 (서울) |
-| | `ap3` | ap-northeast-3 (오사카) |
-| **가용영역** | `az1` | apne2-az1 (az1) |
-| | `az2` | apne2-az2 (az2) |
-| | `az3` | apne2-az3 (az3) |
+### 환경 (계정)
+
+| 식별자 | 설명 | Account ID |
+|--------|------|------------|
+| `manage` | 관리 계정 | 692806374063 |
+| `dev` | 개발 계정 | 558846430793 |
+| `shared` | 공유 계정 | 202949997891 |
+
+### 리전
+
+**리전 코드는 AWS 공식 AZ ID의 접두어를 그대로 사용한다.** 임의 축약(`ue1`, `ap2` 등)을 만들지 않는다.
+
+| 리전 코드 | AWS 리전 | 지역 |
+|-----------|----------|------|
+| `use1` | us-east-1 | 버지니아 |
+| `apne2` | ap-northeast-2 | 서울 |
+| `apne3` | ap-northeast-3 | 오사카 |
+
+기준 문서: [AWS Availability Zone IDs](https://docs.aws.amazon.com/global-infrastructure/latest/regions/aws-availability-zones.html)
+새 리전을 추가할 때도 위 문서의 AZ ID 접두어를 그대로 리전 코드로 쓴다.
+
+리전 식별에는 이 접두어만 사용한다.
 
 ---
 
@@ -48,29 +59,28 @@ account/
 
 ### 기본 패턴
 ```
-{project_code}-{account}-{region_code}-{resource_type}[-{az}]-{name}
+{project_code}-{account}-{region_code}-{resource_type}-{name}
 ```
 
 - **project_code**: 항상 `bys`
 - **account**: `manage` | `dev` | `shared`
-- **region_code**: `ue1` | `ap2` | `ap3`
+- **region_code**: AWS AZ ID 접두어 — `use1` | `apne2` | `apne3` (§2 참조)
 - **resource_type**: 리소스 타입 약어 (아래 표 참조)
-- **az**: 가용 영역 (서브넷 등 AZ 종속 리소스에만 적용, 예: `az1`, `az2`, `az3`)
 - **name**: 용도 식별자 (예: `main`, `dmz`, `app`, `db`)
 
 ### 리소스 타입 약어
 
 | 타입 | 약어 | 예시 |
 |------|------|------|
-| VPC | `vpc` | `bys-dev-ap2-vpc-main` |
-| Subnet | `sbn` | `bys-dev-ap2-sbn-az1-app` |
-| Transit Gateway | `tgw` | `bys-manage-ue1-tgw-main` |
-| TGW Attachment | `tgw-attach` | `bys-manage-ue1-tgw-attach-dev-ap2` |
-| TGW Peering | `tgw-peering` | `bys-manage-ue1-tgw-peering-to-ap2` |
-| EKS Cluster | `eks` | `bys-dev-ap2-eks-main` |
-| IAM Role | `role` | `bys-dev-ap2-role-eks-cluster` |
-| S3 Bucket | `s3` | `bys-shared-ap2-s3-terraform` |
-| Security Group | `sg` | `bys-dev-ap2-sg-eks-node` |
+| VPC | `vpc` | `bys-dev-apne2-vpc-main` |
+| Subnet | `sbn` | `bys-dev-use1-sbn-1d-db` (AZ 이름 접미사 포함) |
+| Transit Gateway | `tgw` | `bys-manage-use1-tgw-main` |
+| TGW Attachment | `tgw-attach` | `bys-manage-use1-tgw-attach-dev-apne2` |
+| TGW Peering | `tgw-peering` | `bys-manage-use1-tgw-peering-to-apne2` |
+| EKS Cluster | `eks` | `bys-dev-apne2-eks-main` |
+| IAM Role | `role` | `bys-dev-apne2-role-eks-cluster` |
+| S3 Bucket | `s3` | `bys-shared-apne2-s3-terraform` |
+| Security Group | `sg` | `bys-dev-apne2-sg-eks-node` |
 
 ### 서브넷 타입 (name 값)
 
@@ -109,7 +119,7 @@ variable "aws_region" {
 
 variable "aws_region_code" {
   type    = string
-  # 예: "ap2"
+  # 예: "apne2"
 }
 
 variable "common_tags" {
@@ -151,7 +161,7 @@ locals {
 ```hcl
 terraform {
   backend "s3" {
-    bucket  = "bys-shared-ap2-s3-terraform"
+    bucket  = "bys-shared-apne2-s3-terraform"
     key     = "aws-{env}-{region-code}/{project-name}/{service-name}/terraform.tfstate"
     region  = "ap-northeast-2"
     encrypt = true
@@ -167,21 +177,21 @@ aws-{env}-{region-code}/{project-name}/{service-name}/terraform.tfstate
 
 | 세그먼트 | 설명 | 예시 |
 |----------|------|------|
-| `{env}-{region-code}` | 계정 환경 + 리전 코드 | `dev-ue1`, `dev-ap2`, `manage-ue1` |
+| `{env}-{region-code}` | 계정 환경 + 리전 코드 | `dev-use1`, `dev-apne2`, `manage-use1` |
 | `{project-name}` | 프로젝트 이름. 공통 인프라는 `common` | `common`, `aws-whats-new` |
 | `{service-name}` | 서비스/컴포넌트 이름 | `vpc-endpoint`, `eks`, `vpc` |
 
 ### Key 예시
 
 **기본 공통 인프라** (`common` 프로젝트):
-- `aws-dev-ue1/common/vpc-endpoint/terraform.tfstate`
-- `aws-dev-ap2/common/vpc/terraform.tfstate`
-- `aws-manage-ue1/common/tgw/terraform.tfstate`
-- `aws-shared-ap2/common/vpc/terraform.tfstate`
+- `aws-dev-use1/common/vpc-endpoint/terraform.tfstate`
+- `aws-dev-apne2/common/vpc/terraform.tfstate`
+- `aws-manage-use1/common/tgw/terraform.tfstate`
+- `aws-shared-apne2/common/vpc/terraform.tfstate`
 
 **특정 프로젝트**:
-- `aws-dev-ap2/aws-whats-new/eks/terraform.tfstate`
-- `aws-dev-ap2/aws-whats-new/rds/terraform.tfstate`
+- `aws-dev-apne2/aws-whats-new/eks/terraform.tfstate`
+- `aws-dev-apne2/aws-whats-new/rds/terraform.tfstate`
 
 ---
 
@@ -201,7 +211,7 @@ provider "aws" {
 ### 멀티 계정/리전 (alias 사용)
 ```hcl
 provider "aws" {
-  alias  = "dev-ap2"
+  alias  = "dev-apne2"
   region = "ap-northeast-2"
 
   assume_role {
@@ -210,7 +220,7 @@ provider "aws" {
 }
 
 provider "aws" {
-  alias  = "shared-ap2"
+  alias  = "shared-apne2"
   region = "ap-northeast-2"
 
   assume_role {
@@ -284,13 +294,13 @@ locals {
 
 | 계정-리전 | VPC CIDR | 비고 |
 |-----------|----------|------|
-| manage-ue1 | 10.5.0.0/16 | + secondary: 100.64.0.0/16 |
-| manage-ap2 | 10.0.0.0/16 | |
-| manage-ap3 | 10.3.0.0/16 | |
-| dev-ap2 | 10.20.0.0/16 | |
-| dev-ap3 | 10.30.0.0/16 | |
-| dev-ue1 | 10.25.0.0/16 | |
-| shared-ap2 | 10.10.0.0/16 | |
+| manage-use1 | 10.5.0.0/16 | + secondary: 100.64.0.0/16 |
+| manage-apne2 | 10.0.0.0/16 | |
+| manage-apne3 | 10.3.0.0/16 | |
+| dev-apne2 | 10.20.0.0/16 | |
+| dev-apne3 | 10.30.0.0/16 | |
+| dev-use1 | 10.25.0.0/16 | |
+| shared-apne2 | 10.10.0.0/16 | |
 
 **서브넷 CIDR 크기 기준:**
 - `dmz`, `extelb`, `intelb`, `db`, `prvonly`: `/24`

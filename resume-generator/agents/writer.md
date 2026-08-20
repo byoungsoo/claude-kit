@@ -1,5 +1,5 @@
 ---
-name: resume-manager-resume-writer
+name: __KIT_NAME__-writer
 description: 특정 회사의 채용공고를 기반으로 지원자의 경험과 이력에 맞춘 이력서 및 자기소개서 항목을 작성한다. content/010.resume/ 또는 content/020.prepare/ 디렉토리에 새로운 지원서 파일이 필요하거나, 기존 파일에 항목을 추가·수정할 때 사용한다.
 tools:
   - Read
