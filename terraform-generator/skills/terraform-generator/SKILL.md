@@ -63,6 +63,7 @@ deploy-scope: both
 생성 후 아래 항목을 자체 검토한다:
 
 - [ ] 리소스 이름이 `{project_code}-{account}-{region_code}-{type}-{name}` 패턴을 따르는가
+- [ ] IAM Role / Policy 이름은 예외 규칙(§3.1)대로 PascalCase 역할 기반 이름인가 (`KarpenterControllerRole` 형태, `bys-` 접두어 없음)
 - [ ] `auto-delete = "no"` 태그가 모든 리소스에 포함되어 있는가
 - [ ] `Terraform = "true"` 태그가 포함되어 있는가
 - [ ] Backend key가 `aws-{account}/{region}/{component}/terraform.tfstate` 형식인가

@@ -44,6 +44,7 @@ eks 컴포넌트 추가해줘
 |------|------|
 | 디렉토리 구조 | `account/aws-{env}-{region}/{component}/` |
 | 리소스 네이밍 | `bys-{account}-{region_code}-{type}-{name}` |
+| IAM 네이밍 예외 | IAM Role/Policy 는 PascalCase 역할 기반 이름 — `KarpenterControllerRole`, `AmazonEKSLoadBalancerControllerRole` |
 | 표준 파일 | `provider.tf`, `main.tf`, `output.tf`, `versions.tf`, `var.*.tf` |
 | 태그 | `Name`, `Terraform: "true"`, `auto-delete: "no"` 필수 |
 | Backend | S3 key: `aws-{account}/{region}/{component}/terraform.tfstate` |

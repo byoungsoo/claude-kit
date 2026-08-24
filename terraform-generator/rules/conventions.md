@@ -78,9 +78,10 @@ account/
 | TGW Attachment | `tgw-attach` | `bys-manage-use1-tgw-attach-dev-apne2` |
 | TGW Peering | `tgw-peering` | `bys-manage-use1-tgw-peering-to-apne2` |
 | EKS Cluster | `eks` | `bys-dev-apne2-eks-main` |
-| IAM Role | `role` | `bys-dev-apne2-role-eks-cluster` |
 | S3 Bucket | `s3` | `bys-shared-apne2-s3-terraform` |
 | Security Group | `sg` | `bys-dev-apne2-sg-eks-node` |
+
+> IAM Role / Policy 는 이 패턴을 쓰지 않는다. §3.1 예외 규칙을 따른다.
 
 ### 서브넷 타입 (name 값)
 
@@ -92,6 +93,74 @@ account/
 | `intelb` | 내부 로드밸런서 (AWS LBC) | Private |
 | `db` | 데이터베이스 | Private |
 | `prvonly` | NAT 없는 완전 Private | Private |
+
+---
+
+## 3.1 IAM Role / Policy 네이밍 예외
+
+**IAM Role 과 IAM Policy 는 §3 기본 패턴(`bys-{account}-{region}-...`)을 적용하지 않는다.**
+IAM은 글로벌 리소스이고 콘솔·정책 문서·assume role 신뢰관계에서 사람이 읽는 경우가 많으므로,
+**이름만 보고 역할을 알 수 있는 PascalCase 이름**을 사용한다.
+
+### 규칙
+
+- **PascalCase** — 하이픈·언더스코어·소문자 접두어 없음
+- `project_code` / `account` / `region_code` 접두어를 **붙이지 않는다**
+- 접미사로 리소스 종류를 명시: Role → `...Role`, Policy → `...Policy`
+- 이름은 **무슨 일을 하는 역할인지** 드러나게 구성 (서비스명 + 대상/기능 + Role)
+  - AWS 서비스/제품 이름은 공식 표기를 그대로 사용 — `AmazonEKS`, `AmazonBedrock`, `AWSLambda`, `Karpenter`, `Argocd`
+- 계정·환경 구분이 필요하면 이름 안에 단어로 포함 — `AdminDevAccountRole`, `ArgocdDevAccessRole`
+- 같은 역할의 변형(테스트·데모 등)은 언더스코어 접미사로 구분 — `..._Demo`
+- 하드코딩된 문자열로 직접 지정한다. `local.common_resource_name` 을 쓰지 않는다
+
+### 예시
+
+| 이름 | 용도 |
+|------|------|
+| `EKSClusterRole` | EKS 클러스터 서비스 롤 |
+| `EKSAutoModeClusterRole` | EKS Auto Mode 클러스터 롤 |
+| `AmazonEKSWorkerNodeAutoModeRole` | EKS Auto Mode 워커 노드 롤 |
+| `AmazonEKSWorkerNodeAutoModeRole_Demo` | 위 롤의 데모용 변형 |
+| `KarpenterControllerRole` | Karpenter 컨트롤러 IRSA 롤 |
+| `AmazonEKSLoadBalancerControllerRole` | AWS Load Balancer Controller 롤 |
+| `AdminDevAccountRole` | dev 계정 관리자 롤 |
+| `ArgocdDevAccessRole` | ArgoCD의 dev 계정 접근 롤 |
+| `AmazonBedrockFullAccessRole` | Bedrock 전체 권한 롤 |
+| `AWSLambdaFullAccessRole` | Lambda 전체 권한 롤 |
+| `KarpenterControllerPolicy` | Karpenter 컨트롤러 정책 |
+
+### 코드 예시
+
+```hcl
+resource "aws_iam_role" "karpenter_controller" {
+  name = "KarpenterControllerRole"
+
+  assume_role_policy = data.aws_iam_policy_document.karpenter_controller_assume.json
+
+  tags = merge(
+    { "Name" = "KarpenterControllerRole" },
+    var.common_tags,
+  )
+}
+
+resource "aws_iam_policy" "karpenter_controller" {
+  name = "KarpenterControllerPolicy"
+
+  policy = data.aws_iam_policy_document.karpenter_controller.json
+
+  tags = merge(
+    { "Name" = "KarpenterControllerPolicy" },
+    var.common_tags,
+  )
+}
+```
+
+`Name` 태그도 IAM 이름과 동일하게 맞춘다 (§8의 `common_resource_name` 패턴 예외).
+
+**적용 대상 리소스:** `aws_iam_role`, `aws_iam_policy`, `aws_iam_instance_profile`
+(instance profile 은 대응하는 Role 이름 + `Profile` — 예: `AmazonEKSWorkerNodeRoleProfile`)
+
+**적용 대상이 아닌 것:** IAM 이외의 모든 리소스는 §3 기본 패턴을 그대로 따른다.
 
 ---
 
@@ -252,6 +321,9 @@ tags = merge(
 - `Terraform`: `"true"`
 - `auto-delete`: `"no"` ← 자동 삭제 방지, 반드시 포함
 - `Environment`: `"dev"` | `"manage"` | `"shared"`
+
+**예외:** IAM Role / Policy 의 `Name` 태그는 IAM 리소스 이름과 동일하게 쓴다 (§3.1 참조).
+나머지 필수 태그는 IAM 리소스에도 동일하게 적용한다.
 
 ---
 
