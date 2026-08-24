@@ -2,7 +2,7 @@
 
 > draw.io MCP `get-shape-by-name` 툴로 추출한 공식 스타일입니다.
 > AWS 아이콘 사용 시 반드시 이 파일의 style 문자열을 그대로 사용하세요.
-> 아이콘 기본 크기: width=80, height=80
+> 아이콘 기본 크기: width=70, height=70
 > 레이블 폰트: fontSize=12
 
 ---
